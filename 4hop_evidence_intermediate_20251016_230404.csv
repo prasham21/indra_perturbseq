@@ -1,0 +1,787 @@
+source,intermediate_1,intermediate_2,intermediate_3,target,stmt_type_1,stmt_type_2,stmt_type_3,stmt_type_4,belief_1,belief_2,belief_3,belief_4,evidence_1,evidence_2,evidence_3,evidence_4,logfoldchange,pval,edge1_evidence_text,edge2_evidence_text,edge3_evidence_text,edge4_evidence_text,edge1_pmids,edge2_pmids,edge3_pmids,edge4_pmids
+ABHD17C,KRAS,CKS1B,MIR1258,IPP,Depalmitoylation,Complex,Activation,DecreaseAmount,0.6351178583063539,0.7758941660771121,0.5346178581543906,0.6301266297471854,1,2,1,1,1.2829194,0.0201102460940725,Database: biopax,1) Further investigation into the CKS1B-KRAS interaction could provide new avenues for early diagnosis and targeted therapies.,1) The MTS assay and soft agar colony formation assay results showed that overexpression of CKS1B promotes HCCLM3-miR-1258 stable cell growth and proliferation (Figure and ).,Database: biopax,,37682707; 39897042,27270326,23446348
+BAG6,HIF1A,MIR361,MIR484,MFSD12,Inhibition,Inhibition,Activation,DecreaseAmount,0.414159988237093,0.5820018208830471,0.4526838539358291,0.6301266297471854,1,1,1,1,-1.2786908,0.0451122699234468,"1) In addition, we confirmed that Poly-G3 inhibited HIF1α in nTreg cells but not in effector CD4 + T cells in protein levels ( xref ).",1) Downregulated miR-361 was also restored by hypoxia inducible factor-1α inhibition with YC-1.,"1) The mitochondrial dynamic-related lncRNA ( MDRL ) reduces mitochondrial fission and apoptosis upon I / R by downregulating miR-361 , which inhibits the progression of miR-484 by binding directly to the primary transcript of miR-484 and precludes Drosha from processing it into pre-miR-484 [ 42 ] .",Database: biopax,30344014,23128854,33299883,23622248
+MYEOV,MYC,BACH1,MIR375,TTC7B,DecreaseAmount,Complex,Activation,DecreaseAmount,0.4738574987008168,0.4261616001712757,0.4526838539358291,0.6301266297471854,1,1,1,1,-1.8855958,0.0479484721755913,"1) Of note, the expression level of MYC was also significantly reduced by the knockdown of MYEOV (Table S4, S5).","1) Bach1 and c-Myc interact with Nrf2 for binding of ARE/EpRE elements, a role which may be critical in dampening the stress response when no longer necessary.","1) Isoflurane facilitated PC cell proliferation , migration , and invasion by activating BACH1 to upregulate miR-375 .",Database: biopax,36698109,29709705,35532539,20215506
+NEAT1,BCL2,CDKN2A,MIR650,CDKN2AIPNL,Inhibition,Activation,IncreaseAmount,DecreaseAmount,0.4824092651701481,0.3668028661364628,0.6163664161553967,0.6301266297471854,1,2,1,1,-1.2538377,0.0218388333610263,"1) In addition , Liu et al. confirmed that upregulated NEAT1 increased BAX expression and decreased Bcl-2 expression , resulting in decreased neuronal cell activity and brain injury in cecal ligation and puncture ( CLP ) - induced sepsis model ( 54 ) .","1) This result is experimentally supported by the fact that both miR-449a and miR-34a directly inhibit the expressions of c-Myc, HDAC1, and Bcl2, which initiates the activation of p16 and p21, leading to cycle arrest.
+
+2) Recent advances have demonstrated that the senescence-associated ncRNAs can regulate cell proliferation and cell cycle arrest by affecting the transcripts of the inhibitor of CDK4/alternative reading frame (INK4/ARF)/very long integenic non-coding RNAs (vlincRNA) VAD/MIR31HG locus to increase p14  , p15  , p16  , and B-cell lymphoma-2 (Bcl-2).",1) The p16(INK4a)-induced expression of two microRNAs (miR-410 and miR-650 chosen as an example) in MCF7 cells is confirmed by individual reverse transcription-qPCR.,Database: biopax,34630395,38238253; 35453680,21170085,27292025
+RPL7L1,AXL,NR3C1,MIR665,SLX4IP,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.4526838539358291,0.6301266297471854,1,1,1,1,1.3063511,0.0360322929777957,Database: biogrid,Database: biogrid,"1) Moreover , high concentration of corticosterone upregulated miR-665 by activating the glucocorticoid receptor to suppress cathepsin D , thus causing lysosomal degradation dysfunction and autophagy flux blockade .",Database: biopax,35384245,31182584,37743032,23313552
+TRPC4AP,RBX1,RIGI,MIR484,RPL36,Complex,Complex,Complex,DecreaseAmount,0.8086435874890908,0.8302066725941236,0.8302066725941236,0.6301266297471854,1,1,1,1,0.13791782,0.0003030504695495,"1) We characterize a new Myc-interacting factor, TRPC4AP (transient receptor potential cation channel, subfamily C, member 4-associated protein)/TRUSS (tumor necrosis factor receptor-associated ubiquitous scaffolding and signaling protein), which is the receptor for a DDB1 (damage-specific DNA-binding protein 1)-CUL4 (Cullin 4) E3 ligase complex for selective Myc degradation through the proteasome. TRPC4AP/TRUSS binds specifically to the Myc C terminus and promotes its ubiquitination and destruction through the recognition of evolutionarily conserved domains in the Myc N terminus.",Database: biogrid,Database: biogrid,Database: biopax,20551172,32513696,32513696,23622248
+VPS11,RAB5A,RIGI,MIR484,BRI3,Activation,Complex,Complex,DecreaseAmount,0.3715222573296911,0.4261616001712757,0.8302066725941236,0.6301266297471854,1,1,1,1,0.34512746,0.0003657533665818,"1) RNAi of the core components vps-11, vps-16, and vps-18 also caused concentration of RAB-5 and RAB-7 at the apical membrane (XREF_FIG), whereas the RAB-7-positive late endosomal compartment remained unaffected (XREF_FIG and Supplemental Figure S4, A and B).","1) To support the subcellular colocalization of RIG-I and Rab5, we conducted co-IP analyses to demonstrate the association of RIG-I and Rab5 in cells ( xref ).",Database: biogrid,Database: biopax,25273556,39504361,32513696,23622248
+B3GNT8,NR2F2,REST,PAX4,PLS3,Complex,DecreaseAmount,Inhibition,DecreaseAmount,0.8302066725941236,0.6301266297471854,0.4357402620936744,0.6301266297471854,1,1,1,1,0.5489163,5.662865572003496e-05,Database: biogrid,Database: biopax,1) This Pax4 NRSE (neuron-restrictive silencer element) is conserved throughout evolution (XREF_FIG B) and confers NRSF dependent transcriptional repression of Pax4 [XREF_BIBR].,Database: biopax,33961781,,28282933,
+ALS2CL,RAB5C,LBR,PGR,RANBP9,Activation,Complex,Complex,DecreaseAmount,0.3715222573296911,0.8302066725941236,0.4261616001712757,0.6309317981560123,1,1,1,2,-2.9851725,0.0228723840300194,"1) The results showed that human ALS2CL exclusively catalyzed GDP dissociation on Rab5A, Rab5B, and Rab5C, as in the cases for ALS2_1018-1657 ( Fig. 4A ), suggesting that humanALS2CL retained selective catalytic activity with all the members of Rab5 family.",Database: biogrid,"1) Sources of heterogeneity were explored by meta-regression analysis according to specific features: assisted reproductive technology/spontaneous conception, study design and quality of papers included Results: data from 38 studies were extracted. (i) septum versus no septum: a lower PR and LBR were associated with septate uterus vs. controls (OR 0.45, 95% CI 0.27–0.76; p < 0.0001; and OR 0.21, 95% CI 0.12–0.39; p < 0.0001); a higher proportion of SA and PL was associated with septate uterus vs. controls (OR 4.29, 95% CI 2.90–6.36; p < 0.0001; OR 2.56, 95% CI 1.52–4.31; p = 0.0004). (ii) treated versus untreated septum: PR and PL were not different in removed vs. unremoved septum(OR 1.10, 95% CI 0.49–2.49; p = 0.82 and OR 0.81, 95% CI 0.35–1.86; p = 0.62); a lower proportion of SA was associated with removed vs. unremoved septum (OR 0.47, 95% CI 0.21–1.04; p = 0.001); (iii) before-after septum removal: the proportion of LBR was higher after the removal of septum (OR 49.58, 95% CI 29.93–82.13; p < 0.0001) and the proportion of SA and PL was lower after the removal of the septum (OR 0.02, 95% CI 0.02–0.04; p < 0.000 and OR 0.05, 95% CI 0.03–0.08; p < 0.0001) Conclusions: the results show the detrimental effect of the uterine septum on PR, LBR, SA and PL.",Database: biopax,15388334,34079125,35743362,
+ALS2CL,RAB5C,LBR,MECOM,JPT2,Activation,Complex,Complex,DecreaseAmount,0.3715222573296911,0.8302066725941236,0.8302066725941236,0.6301266297471854,1,1,1,1,-1.8841251,0.0429835764175636,"1) The results showed that human ALS2CL exclusively catalyzed GDP dissociation on Rab5A, Rab5B, and Rab5C, as in the cases for ALS2_1018-1657 ( Fig. 4A ), suggesting that humanALS2CL retained selective catalytic activity with all the members of Rab5 family.",Database: biogrid,Database: biogrid,Database: biopax,15388334,34079125,30462309,
+ALS2CL,RAB5C,LBR,MBOAT7,CRIP2,Activation,Complex,Complex,IncreaseAmount,0.3715222573296911,0.8302066725941236,0.8302066725941236,0.4844526880351076,1,1,1,1,0.26691,0.000419463063874,"1) The results showed that human ALS2CL exclusively catalyzed GDP dissociation on Rab5A, Rab5B, and Rab5C, as in the cases for ALS2_1018-1657 ( Fig. 4A ), suggesting that humanALS2CL retained selective catalytic activity with all the members of Rab5 family.",Database: biogrid,Database: biogrid,"1) MBOAT7, a phospholipid-remodeling enzyme, was upregulated in LSC as well as cysteine rich protein 2 (CRIP2) which was the most highly expressed.",15388334,34079125,35271311,39877586
+AGPAT4,REL,BCL3,SP1,SARAF,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.5569884418680263,0.4443350122709595,0.6301266297471854,1,5,1,1,-0.5954938,0.0003241999940002,Database: biogrid,"1) IκBα and IκBβ are the two major cytoplasmic inhibitory proteins, along with other less characterized factors including IκBγ, IκBɛ, and Bcl-3, which bind to Rel proteins and restrict their nuclear entry.
+
+2) This suggests that all complexes contain p50; in other words, all kappaB sites were bound by p50 homodimers, p50 and p65 heterodimers and/or p50 heterodimers with other transcription factors including other NF-kappaB members (as shown later, binding of c-Rel and Bcl-3 was detected by a DNA pull-down assay).
+
+3) In support of this, we detected p65, c-Rel and Bcl-3 binding to the kappaB probe (XREF_FIG).
+
+4) Single-base changes in NF-kappaB binding sites have been demonstrated to affect recruitment of the TF Irf3 protein by DNA bound p65 and Rel containing dimers as well as the recruitment of the cofactors histone de-acetylase 3 (HDAC3) and Tip60 to a DNA bound, ternary complex containing p50 homodimers and Bcl3.
+
+5) For example, Bcl3, which binds only c-Rel and RelA, accounts for more than 90% of the IkappaB proteins in THP-1 monocytes [50].
+
+6) For example, Bcl3, which binds only c-Rel and RelA, accounts for more than 90% of the IκB proteins in THP-1 monocytes  [50] .
+
+7) In support of this, we detected p65, c-Rel and Bcl-3 binding to the κB probe ( xref ).","1) Plotting average ChIP-seq signals across EBNA 2 binding sites confirmed the binding of BATF, Bcl11a, Bcl3, IRF4, PAX5, SP1, TCF12 and p300 (XREF_SUPPLEMENTARY).",Database: biopax,25416956,9918122; 24634496; 24243859; 12732617,24068937,
+ARG2,BCL2,RGS2,IL2,FKBP15,Activation,IncreaseAmount,Activation,DecreaseAmount,0.3715222573296911,0.4844526880351076,0.3715222573296911,0.4738574987008168,1,1,1,1,-1.869266,0.0489591747202917,"1) Research has also demonstrated that circ-PVT1 triggers the activation of Arginase 2 (ARG2), which in turn inhibits BAX and activates bcl2, ultimately resulting in the suppression of apoptosis ( Li et al., 2022 ).",1) This suggests a survival advantage of low RGS2 expressing tumour cells by the BCL-2 associated prevention of hypoxia-induced cell-death  .,1) Rgs2 −/− T lymphocytes proliferated less and produced less interleukin-2 (IL-2) after phorbol ester or T-cell receptor (CD3/CD28) stimulation.,"1) Paradoxically, IL-2 increases the expression of a second cdk inhibitor, p21Cipl and Wafl, in Stimulus Detector -==> Signal -= :> Response < Mitogenic signals Tort p/Tor2p / Nutrient supply G1-~ S mTor progression rotein serine threonine kinase cascade A7T ~ ip ~ DNAPw UNA damage Unreplicated DNA _ ======> Tdlpirad3p ~ mer4lp G1 ---> S or G2 ---> M arrest 1996 Current Opinion in Immunology A working model of signal-transduction pathways governed by the P13K homologs.",37536436,30467386,18006065,8793996
+AGPAT1,HAL,RGN,FDFT1,DYNLRB1,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.4261616001712757,0.4098057272206696,0.4844526880351076,1,1,42,1,-0.45270944,7.819870483383205e-05,Database: biogrid,"1) The gases collected in gas bags after each experiment were analyzed using a Hiden analytical HPR20 MS with 200 amu mass range capability to evaluate the content of CO 2 , H 2 and CH 4 and equipped with a HAL-RC quadrupole mass spectrometer.","1) Based on these findings, it can be suggested that the RC-SS complex could be an effective drug delivery carrier for localized cancer therapy.
+
+2) The nanoformulation showed peaks similar to that of red clay, confirming the effective encapsulation of ACV within the RC-SS carrier.
+
+3) The decreased peak intensity indicated the addition of ACV on the interlayers of the RC-SS complex ( xref ).
+
+4) The thermogram of nanocomplex F1 showed an exothermic peak at 368.16 °C, confirming the increase in the degradation temperature of the ACV-loaded RC-SS complex from 295.34 °C and its thermal stability.
+
+5) They were characterized into four groups: patients with rampant caries with Sjogren’s syndrome (RC-SS) or high-sugar diet (RC-HD), common dental caries (DC), and healthy individuals (HP).
+
+6) OTU principal component analysis revealed a significant difference between healthy individuals and those with RC-SS.
+
+7) A significant difference ( P  < 0.01) in age was found between the RC-SS group (48.90 ± 2.51) and RC-HD group (20.88 ± 1.80) (Fig.  xref c).
+
+8) The timing of the initial clinical detection of dental caries was significantly different ( P  < 0.01) between the RC-SS group (6.60 ± 0.98) and the RC-HD group (1.61 ± 0.28) or DC group (0.96 ± 0.17) (Fig.  xref d).
+
+9) The saliva flow rate of the RC-SS group is lower than the other three groups (Fig.  xref e).
+
+10) The DMFT results revealed that RC-SS group (20.40 ± 1.14) and RC-HD group (20.50 ± 1.41) had significantly higher DMFT than the DC group (2.79 ± 0.318); however, there was no significant difference between the two groups.
+
+11) Based on the DMFS results, the RC-SS group (44.80 ± 1.86) and RC-HD group (40.00 ± 3.55) had significantly higher DMFS than the DC group (3.21 ± 0.28), and DMFS was significantly higher in patients with rampant caries than in patients with DMFT.
+
+12) A total of 44 saliva samples (10 RC-SS, 8 RC-HD, 14 DC, 12 HP) and 41 plaque samples (7RC-SS, 12RC-HD, 14 DC, 8 HP) passed quality inspection and were subjected to 16S rRNA amplicon library sequencing.
+
+13) Based on the saliva samples, the RC-SS group exhibited clear segregation in community structures among the groups, occupying the first 2 principal components.
+
+14) However, based on the plaque samples, the RC-SS and RC-HD microbiota overlapped with some HP and DC microbiota.
+
+15) Microbiota compositions and biomarkers for RC-HD and RC-SS.
+
+16) To compare the oral microbiota community of rampant caries with different etiologies (SS or HD), oral samples from patients with rampant caries of different causes were collected and detected separately (called RC-SS and RC-HD).
+
+17) For saliva samples, Prevotella, Dialister and Fretibacterium significant enriched in the RC-SS group.
+
+18) Relative abundance screening of major species between RC-HD and RC-SS patient plaque microbial communities using the Wilcoxon rank-sum test is depicted in Fig.  xref c, d, e, f.
+
+19) The level of Veillonella and Leptotrichia in the RC-HD group was significantly higher than that in the RC-SS group ( P  < 0.05) (Fig.  xref c).
+
+20) Prevotella tannerae were higher in the RC-SS group than the RC-HD group.","1) Thus, gestational SS increases the level of BLP and GAX.",33961781,21930374,38515087; 25800934; 31777853; 35291312; 37514105; 37690634,26361040
+AGPAT1,HAL,RAF1,ELK1,MRPL54,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.6163664161553967,0.6301266297471854,1,1,1,1,-0.6634935,9.606511457891036e-05,Database: biogrid,Database: biogrid,"1) RKTG expression inhibits EGF-stimulated ERK and RSK phosphorylation, blocks NGF-mediated PC12 cell differentiation, and antagonizes Ras- and Raf-1-stimulated Elk-1 transactivation.",Database: biopax,33961781,36244648,17724343,
+B3GNT8,ATR,RGR,SOX9,TMEM132A,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.4443350122709595,0.4443350122709595,0.6301266297471854,1,1,1,1,-1.2307026,0.0333650914991005,Database: biogrid,"1) ATR is bound to RGR via Schiff base linkage to lysine and RGR exhibits broad absorption spectra with maxima at 370 nm (E = 6.61 X lo4K ' c m - ') and 469 nm (E = 6.28 X lo4 W'cm-') for unprotonated and protonated forms, respectively (194).","1) Chromatin immunoprecipitation in human fetal RPE cells indicates that SOX9 and OTX2 bind the RPE65, RGR, and RLBP1 promoter regions [207].",Database: biopax,33961781,16120006,38786093,
+B3GNT8,ATR,RGN,NR1H4,CYP51A1,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8302066725941236,0.4261616001712757,0.4844526880351076,0.4738574987008168,1,1,1,1,0.47987893,0.0001145320542219,Database: biogrid,"1) The strain distribution of each resistance strain gauge is shown in xref and xref , xref and xref for RC-FRP1, RC-FRP3, and RC-FRP5, respectively (the abscissa number in the figure corresponds to the resistance strain gauge number).
+
+2) At the same level, the strain of RC-FRP1, RC-FRP3, RC-FRP5 are lost, 2005.5 µε and −181.8 µε, respective.","1) In this study, HFHC diet intake reduced FXR and TGR5, RC alkaloids treatment significantly increased the protein levels of FXR and TGR5.","1) CYP2B6/2b10 expression is positively regulated by the PXR and CAR; and Cyp51a1 expression is negatively regulated by the FXR XREF_BIBR, XREF_BIBR, XREF_BIBR.",33961781,32245144,27287254,29352187
+CALCOCO1,BCL2L1,MCL1,AGAP2,ANKRD1,IncreaseAmount,Complex,Inhibition,DecreaseAmount,0.4844526880351076,0.8444287068977416,0.4357402620936744,0.4738574987008168,1,287,1,1,-0.9110734,1.2722388583888777e-05,"1) Hence, we believed that cocoa induces apoptosis by modulating the expressions of Bcl-xl, Bax and caspase 3.We determined that the administration of a cocoa diet during the early stage of colitis significantly suppressed the development of CAC by modulating the NF-κB/IL-6/STAT3 signaling pathway and also induces apoptosis by activating caspase 3 in a mouse model, and our findings may merit further clinical investigation of this natural product as a chemopreventive agent against CAC in humans.The authors declare that there are no conflicts of interest.","1) KPT-330 and A-1331852 combination disrupted bindings of Mcl-1 and Bcl-xL to Bax, Bak, and/or Bim, elicited mitochondrial outer membrane permeabilization, and triggered apoptosis.
+
+2) We designed a BH3 α-helical mimetic BH3-M6 that binds to Bcl-X(L) and Mcl-1 and prevents their binding to fluorescently labeled Bak- or Bim-BH3 peptides in vitro.
+
+3) JY-1-106 disrupts interactions between both BCL-x L and MCL-1 with BAK1, leading to apoptosis through the mitochondrial pathway in human cancer cells, sensitizes tumor cells to conventional chemotherapeutic agents and inhibits tumor growth in a xenograft model of lung cancer [XREF_BIBR].
+
+4) Crystal structures of α/β-peptides bound to Bcl-x L or Mcl-1.
+
+5) Interacting with Bcl-xl and Mcl-1, Bim initiates cytochrome c release from mitochondria, activates Caspase 9 and consequently triggers mitochondrial apoptotic pathway [ xref ].
+
+6) In addition, ASF/SF2 directly binds Bcl-x and Mcl1 mRNAs, and its enforced expression attenuated the effect of AURKA inhibition on Bcl-x splicing ( xref ).
+
+7) The intrinsically disordered N-terminal transcriptional activation domain of p53 has also been shown to weakly interact with the BC groove of BCL-xL [ xref , xref ] and MCL-1 in a non-canonical fashion.
+
+8) The novel BH3 alpha-helix mimetic JY-1-106 induces apoptosis in a subset of cancer cells (lung cancer, colon cancer and mesothelioma) by disrupting Bcl-xL and Mcl-1 protein protein interactions with Bak.
+
+9) To evaluate this possibility, we first determined whether JY-1-106 disrupts the binding of Bcl-xL and Mcl-1 to Bak in vitro using fluorescence polarization (FP) assays [XREF_BIBR].
+
+10) In this report, we characterize the novel alpha-helix mimetic JY-1-106 that disrupts the interactions between both Bcl-xL and Mcl-1 with Bak, which leads to apoptosis through the mitochondrial pathway in human cancer cells.
+
+11) In response to death stimuli, certain BH3-only proteins, the so-called sensitizers, displace activators that include Bid and Bim from their inhibitory associations with Bcl-xL or Mcl-1.
+
+12) The control compound JY-1-106a makes few favorable contacts leading to increased fluctuations of the binding regions of both Bcl-xL and Mcl-1, confirming that the side chains attached to the trisarylamide scaffold are required for interaction with Bcl-xL and Mcl-1.
+
+13) Our current results suggest that the abilities of JY-1-106 to bind both Mcl-1 and Bcl-xL contribute to Bax activation in these cancer cells.
+
+14) Since their BH3 domains have much higher affinities to Bcl-xL/Bcl-2 or Mcl-1, elevated PUMA and Bim levels can bind in an inhibitory manner to Bcl-xL and Mcl-1.
+
+15) Previous articles have shown that upregulation of Mcl-1 is associated with resistance to the Bcl-xL inhibitor, ABT-737, but this phenomenon was abrogated by cotreatment with sorafenib or Mek inhibitors ( xref , xref ).
+
+16) It has been reported that activator BH3-only proteins can bind both Bcl-xL and Mcl-1, and activator BH3-only proteins that were freed from Bcl-xL and Mcl-1 can directly activate Bax [ xref ].
+
+17) Bad binds strongly to Bcl-2, Bcl-X L and Bcl-w; whereas, Noxa binds exclusively to Mcl-1 and Bfl-1/A1.
+
+18) Interactions between anti-apoptotic proteins BCL-2, BCL-X L, and MCL-1 and pro apoptotic proteins BIM and NOXA were studied by BiFC.
+
+19) In addition to the interaction between BCL2L1 and MCL1, synthetic lethality between BCL2L1 and BCL2L2 (Bcl-w) was detected in Meljuso, OVCAR8, and A375 at an FDR < 0.01, HT29 (0.03) and A549 (0.31).
+
+20) Thus, small molecules confirmed the synthetic lethal interaction between MCL1 and BCL2L1.","1) ATF4 suppresses the expression of the cellular senescence-associated gene Cdkn2a (cyclin-dependent kinase inhibitor 2a) to drive oncogenic transformation (Horiguchi et al. 2012) and enhances expression of the anti-apoptotic gene myeloid cell leukemia-1 (Mcl-1) (Hu et al. 2012), the autophagy-initiating kinase Ulk1 (Pike et al. 2013), and heme oxygenase 1 (Hmox-1) (Dey et al. 2015) to promote cancer cell survival.","1) 19
+ Moreover, AGAP2‐AS1 suppressed the transcription of ANKRD1 and ANGPTL4 through recruiting EZH2, thereby deteriorating pancreatic cancer,
+30
+ whereas AGAP2‐AS1 was poorly discussed in activating CAFs.",26355019,20705336; 28838268; 22357666; 25169932; 25012639; 19542438; 27903966; 25088254; 25788265; 24503222,28860159,36541122
+ARHGAP26,RAC3,RBMX,SMC5,SLF2,Gap,Complex,Complex,IncreaseAmount,0.6351178583063539,0.8302066725941236,0.8302066725941236,0.4844526880351076,1,1,1,1,-1.4051522,0.0421915596421142,Database: biopax,Database: biogrid,Database: biogrid,"1) Importantly, the elevated spontaneous levels of chromosomal aberrations in the SLF2/SMC5 patient fibroblasts and the U-2 OS SLF2 HM cells, were rescued by re-expression of either WT SLF2 or SMC5 (Fig. 6h, i).",,31871319,36373674,36333305
+AAGAB,BCAR1,SLX4,USP45,CORO1B,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.8303458270021431,0.4738574987008168,1,1,4,1,0.7797119,7.615691679627148e-05,Database: biogrid,Database: biogrid,"1) Moreover, we observed that in SLX4 knockout mouse embryonic fibroblasts (Castor et al, ), co-immunoprecipitation of USP45 and ERCC1 was unaffected (Fig ) consistent with USP45 binding to ERCC1 and not to SLX4.
+
+2) In agreement with USP45 associating with SLX4 indirectly through its ability to bind ERCC1, we found that USP45 did not co-immunoprecipitate with SLX4 from ERCC1 knockout mouse embryonic fibroblasts (MEFs) (Fig xref D; McWhir et al , xref ; Melton et al , xref ).","1) The in vivo ubiquitination assay showed that USP45 depletion led to increased levels of ubiquitinated Coro1B (Fig. 5, I and J).",33001583,33001583,25538220,40067150
+CPNE5,BCL2L1,MCL1,YAP1,CRIM1,IncreaseAmount,Complex,Complex,IncreaseAmount,0.4844526880351076,0.8444287068977416,0.4261616001712757,0.4844526880351076,1,287,1,1,-0.48826474,0.0001724198256254,"1) The up-regulation of Bcl-xL expression by Cpne5 might play a role in this process ( Wu, 2010 ).","1) KPT-330 and A-1331852 combination disrupted bindings of Mcl-1 and Bcl-xL to Bax, Bak, and/or Bim, elicited mitochondrial outer membrane permeabilization, and triggered apoptosis.
+
+2) We designed a BH3 α-helical mimetic BH3-M6 that binds to Bcl-X(L) and Mcl-1 and prevents their binding to fluorescently labeled Bak- or Bim-BH3 peptides in vitro.
+
+3) JY-1-106 disrupts interactions between both BCL-x L and MCL-1 with BAK1, leading to apoptosis through the mitochondrial pathway in human cancer cells, sensitizes tumor cells to conventional chemotherapeutic agents and inhibits tumor growth in a xenograft model of lung cancer [XREF_BIBR].
+
+4) Crystal structures of α/β-peptides bound to Bcl-x L or Mcl-1.
+
+5) Interacting with Bcl-xl and Mcl-1, Bim initiates cytochrome c release from mitochondria, activates Caspase 9 and consequently triggers mitochondrial apoptotic pathway [ xref ].
+
+6) In addition, ASF/SF2 directly binds Bcl-x and Mcl1 mRNAs, and its enforced expression attenuated the effect of AURKA inhibition on Bcl-x splicing ( xref ).
+
+7) The intrinsically disordered N-terminal transcriptional activation domain of p53 has also been shown to weakly interact with the BC groove of BCL-xL [ xref , xref ] and MCL-1 in a non-canonical fashion.
+
+8) The novel BH3 alpha-helix mimetic JY-1-106 induces apoptosis in a subset of cancer cells (lung cancer, colon cancer and mesothelioma) by disrupting Bcl-xL and Mcl-1 protein protein interactions with Bak.
+
+9) To evaluate this possibility, we first determined whether JY-1-106 disrupts the binding of Bcl-xL and Mcl-1 to Bak in vitro using fluorescence polarization (FP) assays [XREF_BIBR].
+
+10) In this report, we characterize the novel alpha-helix mimetic JY-1-106 that disrupts the interactions between both Bcl-xL and Mcl-1 with Bak, which leads to apoptosis through the mitochondrial pathway in human cancer cells.
+
+11) In response to death stimuli, certain BH3-only proteins, the so-called sensitizers, displace activators that include Bid and Bim from their inhibitory associations with Bcl-xL or Mcl-1.
+
+12) The control compound JY-1-106a makes few favorable contacts leading to increased fluctuations of the binding regions of both Bcl-xL and Mcl-1, confirming that the side chains attached to the trisarylamide scaffold are required for interaction with Bcl-xL and Mcl-1.
+
+13) Our current results suggest that the abilities of JY-1-106 to bind both Mcl-1 and Bcl-xL contribute to Bax activation in these cancer cells.
+
+14) Since their BH3 domains have much higher affinities to Bcl-xL/Bcl-2 or Mcl-1, elevated PUMA and Bim levels can bind in an inhibitory manner to Bcl-xL and Mcl-1.
+
+15) Previous articles have shown that upregulation of Mcl-1 is associated with resistance to the Bcl-xL inhibitor, ABT-737, but this phenomenon was abrogated by cotreatment with sorafenib or Mek inhibitors ( xref , xref ).
+
+16) It has been reported that activator BH3-only proteins can bind both Bcl-xL and Mcl-1, and activator BH3-only proteins that were freed from Bcl-xL and Mcl-1 can directly activate Bax [ xref ].
+
+17) Bad binds strongly to Bcl-2, Bcl-X L and Bcl-w; whereas, Noxa binds exclusively to Mcl-1 and Bfl-1/A1.
+
+18) Interactions between anti-apoptotic proteins BCL-2, BCL-X L, and MCL-1 and pro apoptotic proteins BIM and NOXA were studied by BiFC.
+
+19) In addition to the interaction between BCL2L1 and MCL1, synthetic lethality between BCL2L1 and BCL2L2 (Bcl-w) was detected in Meljuso, OVCAR8, and A375 at an FDR < 0.01, HT29 (0.03) and A549 (0.31).
+
+20) Thus, small molecules confirmed the synthetic lethal interaction between MCL1 and BCL2L1.","1) These observations were congruent with our in vitro findings, and further supported a role for SHP2 in modulating the sensitivity of CCA to gemcitabine/cisplatin combinatorial therapy via a YAP-MCL1 mechanism.
+
+2) To examine whether YAP1 binds to upstream (5′ side) regions of the MCL1 and BCLXL genes, KTOR1 and KTOR2 cells treated with vehicle or 100 nM of ALC for 96 h in vitro were subjected to chromatin immunoprecipitated qPCR (ChIP-qPCR) (Supplementary Fig.  xref ).",1) Modifying YAP1 expression in cells (Fig. S4A–B) indicated that YAP1 overexpression equally raised the expression of CRIM1 and circ_0007386 (Fig. 8D).,29627306,20705336; 28838268; 22357666; 25169932; 25012639; 19542438; 27903966; 25088254; 25788265; 24503222,32646966; 31900393,39030638
+CX3CL1,REN,RENBP,SPP1,PITRM1,Inhibition,Activation,Inhibition,DecreaseAmount,0.4763268720714353,0.3715222573296911,0.4410755819620935,0.4738574987008168,3,1,2,1,-1.3605058,0.0032234246037972,"1) For example, activation of microglial fractalkine (CX3CL1)–CX3CR1 signalling led to capillary constriction, while blocking the renin–angiotensin system with candesartan abolished microglia-mediated vasoconstriction in the mouse retina (Fig. 2) (Table 2) [81].
+
+2) These data suggest that increased fractalkine early in diabetes may attenuate the renin‐angiotensin system in microglia that results in constriction of capillary vessels and inability of those vessels to respond to normal vasoregulatory stimuli.
+
+3) According to high CX3CL1 expression can inhibit inflammatory cytokines production ( Ren et al., 2016 ), we hypothesized that the up-regulation of CX3CL1 in CNS is a negative feedback effect from the exacerbated clinical symptoms in EAE administered with SR141716A.Inflammation mediated by microglia contributes to demyelination and neurodegeneration.",1) A renin secreting tumor (Juxtaglomerular cell tumor) in human kidney produced not only renin but also renin binding protein in a very large quantity.,"1) Unmodified collagen stimulated production of osteopontin mRNA, which was reduced by AGE modification to levels attained in cells on plastic.
+
+2) Unmodified collagen stimulated production of osteopontin mRNA, which was reduced by AGE modification to levels attained in cells on plastic.","1) In fibroblasts, osteopontin up-regulated tissue inhibitor of metalloprotease-1 and type I collagen, and down-regulated matrix metalloprotease-1 (MMP-1) expression, while in A549 cells it caused up-regulation of MMP-7.",29501084; 38347307; 36349522,6756682,9276088,16128620
+CYB561D1,AQP6,REN,POU1F1,WDR73,Complex,Activation,Complex,DecreaseAmount,0.8302066725941236,0.3715222573296911,0.4073065404350923,0.6301266297471854,1,1,4,1,-1.3114281,0.0490603781565268,Database: biogrid,"1) AQP6 silencing reduced the water permeability of REN, but not of Met-5A and MSTO-211H.","1) To study the molecular events mediating the cAMP induction, DNase I footprinting and electromobility shift assays (EMSAs) were performed with renin-producing chorionic cell and kidney cortex cell nuclear extracts, showing that the CRE-binding protein (CREB) interacts with the CRE and that tissue-specific factors, distinct from Pit-1, specifically bind the renin Pit-1 motif.
+
+2) In addition, CREB extracted from chorionic cells and kidney cortex cells effectively binds the renin CRE and that factors from chorionic and renal origin, different from Pit-1, bind the Pit-1 site of the human renin gene proximal promoter (12) as represented in FIG.
+
+3) The present study suggest that transactivating factors, present in renin-producing chorionic and kidney cortex cells, bind the Pit-1 consensus site of the human renin gene and act together with CREB to mediate transcriptional control of the human renin gene by CAMP.
+
+4) Overal1, renin-producing chorionic cells and kidney cortex cells express tissue-specific factors which bind to the Pit-1 site of the human renin promoter.
+
+HUMAN RENIN GENE IN TRANSCRIPTION REFERENCES
+
+549
+
+Downloaded by [University of Wisconsin - Madison] at 20:39 04 January 2018
+
+1.",Database: biopax,32296183,35741021,9247737; 8645191,
+DHCR24,RET,CD74,ETS1,KRTCAP2,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.422856899694916,0.4571648567429306,0.6301266297471854,1,3,2,1,-0.44345737,0.0003593976565673,Database: biogrid,"1) Similarly, inhibitors blocking the MAPK/ERK and AKT/mTOR pathways also augmented MHC-II expression, suggesting their implications in RET-MHC-II signaling axis.
+
+2) Likewise, while thousands of CD74-ROS1 clones emerged, no clones with CD74-ALK, CD74-RET, or CD74-NTRK1 fusions emerged in PC9 cells expressing CIITA ( xref ).
+
+3) Likewise, while thousands of CD74-ROS1 clones emerged, no clones with CD74-ALK, CD74-RET, or CD74-NTRK1 fusions emerged in PC9 cells expressing CIITA (Fig.  xref ).","1) Revisiting the ATAC and ChIP supplemental material of that study, we identified the CD74 gene to be located in ETS-1-accessible chromatin regions in resting naive CD4   T cells and revealed actual ETS1 binding in the CD74 promoter region, both suggesting an ETS1 transcriptional regulation of CD74 in CD4   T cells.
+
+2) Based on a ChIP analysis, showing actual ETS1 binding in the CD74 promoter region, transcriptional regulation of CD74 by ETS1, a transcription factor associated with T-cell preparedness for rapid activation, seems conceivable.",Database: biopax,32062451,38313284; 34874277; 38877018,38992165,
+DHTKD1,BCAR1,MLST8,INS,MBOAT7,Complex,Complex,Inhibition,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.5820018208830471,0.4738574987008168,1,1,1,1,-0.6972076,4.468012219248288e-05,Database: biogrid,Database: biogrid,"1) Here, it has been shown that knockdown of mTOR, Raptor, and mLST8, but not Rictor and mSin1, suppresses insulin-stimulated phosphorylation of IRS-1 at Ser-636/639 and stabilizes IRS-1 after long term insulin stimulation.","1) Very similar findings were reported by Meroni et al. (14) using a morpholino oligonucleotide (MPO)-driven knockdown approach, further demonstrating that Mboat7 loss-of-function promoted fatty liver and importantly showed that Mboat7 expression is suppressed by insulin.",33001583,33001583,19561084,36806709
+DMRTA1,PLXNA2,RELA,CCNF,CNTRL,Complex,IncreaseAmount,Complex,DecreaseAmount,0.4112974356621169,0.4844526880351076,0.8302066725941236,0.6324007949925685,19,1,1,1,1.3207554,0.0278379476796519,"1) Diabetic macular oedema (DMO) was defined from spectral domain optical coherence tomography (OCT-DMO).
+
+2) The main outcomes were any DR, proliferative DR (PDR), clinically significant macular oedema (CSME), OCT-DMO and sight-threatening DR (STDR).
+
+3) There was high proportion of any DR (52.3%), PDR (6.3%), CSME (19.7%), OCT-DMO (28.9%) and STDR (31.5%) in people attending a tertiary retinal clinic.
+
+4) The overall proportion of CSME was 19.7%, and of OCT-DMO 28.9% and followed the same distribution.
+
+5) Compared with Europeans as the reference group, East Asians were approximately half as likely to have any DR, PDR, OCT-DMO or STDR.
+
+6) Middle Easterns had similar odds of having any DR, PDR and STDR as Europeans but were more likely to have OCT-DMO (OR 1.65, 95% CI 1.03 to 2.63).
+
+7) South Asians had similar odds of any DR, PDR, OCT-DMO and STDR as Europeans.
+
+8) Persons reporting ethnicity as ‘other’ were more likely to have OCT-DMO (OR 1.51, 95% CI 1.04 to 2.21) than Europeans.
+
+9) In univariable analyses, age, gender, BMI and smoking were not associated with any DR, PDR, OCT-DMO or STDR.
+
+10) Type 1 diabetes was associated with lower risk of any DR (OR 0.51, 95% CI 0.33 to 0.80) compared with type 2 diabetes, but not with PDR, OCT-DMO or STDR. xref shows the variables that were associated with any DR in univariable analyses.
+
+11) Middle Eastern ethnicity was associated with increased risk of OCT-DMO (adjusted OR 1.63, 95% CI 1.02 to 2.61) but not other forms of DR.
+
+12) Duration of diabetes was independently associated with increased risk of any DR, OCT-DMO and STDR.
+
+13) Higher HbA1c was associated with higher rates of PDR and STDR, while higher systolic blood pressure was associated with increased rates of OCT-DMO.
+
+14) The survey found a high proportion of any DR (52.3%), PDR (6.3%), CSME (19.7%), OCT-DMO (28.9%) and STDR (31.5%) overall.
+
+15) OCT-DMO is a more accurate and objective measure of DMO than photographic CSME, xref and our study is the first to report on OCT-DMO in a multiethnic population.
+
+16) This is significant as OCT-DMO is now recognised as the main cause of visual impairment in diabetic eye disease. xref Our study found that the influence of ethnicity on rates of OCT-DMO is similar to the influence on any DR, with the highest proportion in Oceanians, followed by Middle Easterns, South Asians, Europeans and East Asians.
+
+17) Relative to Australian Europeans, participants of Oceanian ethnicity had over twice the risk of having any DR, PDR, OCT-DMO and STDR.
+
+18) Independent modifiable predictive factors for any DR, OCT-DMO and PDR were longer duration of diabetes, higher HbA1c and higher blood pressure.
+
+19) In summary, the LEADS of DR in a multiethnic Australian population found a high rate of any DR, OCT-DMO and STDR overall.","1) The administration of OCT reduced tumor necrosis factor-alpha and interleukin-6 levels in kidney tissues, protected the kidney from apoptosis, and significantly downregulated the expression of nuclear factor-kappaB p65.",Database: biogrid,"1) Cyclin F has only one other known substrate, CEP110 ( ).",36813495,28923648,36114006,21963094
+CDKN2B,RELA,RECQL4,UBE2O,RPL35,Complex,Complex,Complex,IncreaseAmount,0.4261616001712757,0.8302066725941236,0.4261616001712757,0.4844526880351076,1,1,1,1,0.13355091,0.0003463289217147,"1) As depicted in Fig.  xref d, Ingenuity Pathway Analysis showed key genes highly enriched in BC with CDKN2B-AS1 , namely (1) RELA proto-oncogene, (2) prostaglandin-endoperoxide synthase 2 ( PTGS2 ), (3) interleukin 6 ( IL6 ), (4) vascular endothelial growth factor A ( VEGFA ), and (5) tumor necrosis factor-alpha ( TNF ).",Database: biogrid,"1) Furthermore, we show that deubiquitinylase USP7 interacts with both UBE2O and RECQL4, and in that it antagonizes UBE2O-mediated regulation of RECQL4 stability and function.","1) Markson et al. found through yeast two-hybrid screens that more than 100 E3 ubiquitin ligases have the ability to interact with UBE2O.It was further found that UBE2O can modulate expressions of ribosomal proteins RPL29, RPL35 and RPL23A, and nonribosomal proteins DDX5, NOL12, NOP16 and PTRF (Nguyen et al., 2017).",33849428,33438746,36273042; 34921745; 29229926,37533513
+FLI1,REST,RFC1,NR3C1,ATP6V1A,Complex,Complex,Complex,IncreaseAmount,0.4261616001712757,0.8302066725941236,0.8302066725941236,0.4844526880351076,1,1,1,1,-1.5693107,5.1221236603355726e-05,"1) Preliminary experiments investigating the interaction between EWS-FLI-1 and the REST promoter using CHIP assay indicated that EWS-FLI-1 may bind to the REST promoter (data not shown), suggesting that EWS-FLI-1 directly regulates REST expression.",Database: biogrid,Database: biogrid,"1) Although nhe3b and ca2 like a still exhibited enhanced expression, levels of atp6v1a, ae1b, and ca15 mRNA and acid secretion were either not or only partially upregulated by AFW in GR morphant zebrafish embryos.",24415532,27976729,31182584,26635615
+FLI1,REST,RELA,KLF4,LXN,Complex,Complex,Complex,DecreaseAmount,0.4261616001712757,0.8302066725941236,0.4261616001712757,0.5355752228183895,1,1,1,1,-0.65657574,6.241095077992677e-05,"1) Preliminary experiments investigating the interaction between EWS-FLI-1 and the REST promoter using CHIP assay indicated that EWS-FLI-1 may bind to the REST promoter (data not shown), suggesting that EWS-FLI-1 directly regulates REST expression.",Database: biogrid,"1) We further provide evidence that KLF4 interacts with the NF-kappaB family member p65 (RelA) to cooperatively induce the iNOS promoter.
+
+2) Taken together, these results suggest that Klf4 inhibits TNF‐α‐mediated induction of Vcam1 expression by blocking the binding of p65 to the Vcam1 promoter through the physical association between Klf4 and p65.
+
+3) Moreover, we demonstrated a novel mechanism whereby Klf4 inhibits the inflammation‐related induction of Vcam1 by blocking the binding of NF‐κB to the Vcam1 promoter through the association between Klf4 and p65 in ECs.
+
+4) In addition, KLF4 interacts with the p65 subunit of NF-κB to activate the transcription of proinflammatory genes and trigger inflammation (Autieri, xref ).
+
+5) In addition, KLF4 interacts with the p65 subunit of NF-κB to activate the transcription of proinflammatory genes and trigger inflammation (Autieri, xref ).
+
+6) In response to IL‐1β treatment, Klf4 and p65 bound to the promoter region of the myocardin gene within the same chromatin in cultured SMCs.
+
+7) Finally, detailed myocardin promoter analysis reveals consensus binding sites for NF‐κB and KLF4 and chromatin immunoprecipitation (ChIP) analysis in cultured SMCs and injured vessels demonstrates that both p65 and KLF4 are bound to the myocardin promoter in response to an inflammatory cytokine or vascular injury.
+
+8) In addition, co-immunoprecipitation assays revealed that Klf4 physically interacted with p65 in cultured SMCs treated with high phosphate and TNF.
+
+9) In addition, co‐immunoprecipitation assays revealed that Klf4 physically interacted with p65 in cultured SMCs treated with high phosphate and TNF (Figure  xref F).
+
+10) In addition, phosphorylated p65 and Klf4 physically interacted with each other, as demonstrated by co‐immunoprecipitation assays using endogenous proteins.
+
+11) Furthermore, binding of p65 and Klf4 was also detectable at the myocardin promoter in the mouse carotid arteries 3 days after vascular injury (XREF_FIG C).
+
+12) Furthermore, binding of p65 and Klf4 was also detectable at the myocardin promoter in the mouse carotid arteries 3 days after vascular injury ( xref C).
+
+13) Previously, deletion of p120 catenin was shown to similarly initiate inflammation in skin keratinocytes through indirect activation of NF- κ B by a complex mechanism, possibly involving induction of RhoA guanosine triphosphatase activity.  xref  In macrophages, KLF4 interacts with the p65 subunit of NF- κ B to cooperatively induce the inducible nitric oxide synthase promoter,  xref  but we did not find evidence that KLF4-p65 binding in keratinocytes was altered by increased KLF4 expression (data not shown).
+
+14) Furthermore, chromatin immunoprecipitation studies revealed that the direct binding of KLF4 to p65 in human umbilical vein endothelial cells transduced with KLF4 inhibited NF-kappaB activity at the VCAM-1 promoter in response to inflammatory stimuli.
+
+15) Furthermore, chromatin immunoprecipitation studies revealed that the direct binding of KLF4 to p65 in human umbilical vein endothelial cells transduced with KLF4 inhibited NF‐κB activity at the VCAM‐1 promoter in response to inflammatory stimuli.
+
+16) For instance, a KLF4–p65 interaction inhibits VCAM-1 induction, reducing leukocyte homing ( xref , xref ).
+
+17) Finally, we determined the effect of AMPKα2 deficiency on binding activity of NF-κB p65 with the KLF4 promoter.
+
+18) As expected, AMPKα2 deletion markedly promoted the binding of NF-κB p65 to the KLF4 promoter ( xref ).
+
+19) A previous study suggested that KLF4 inhibits TNF-alpha-mediated induction of vascular cell adhesion protein 1 (VCAM1) expression by blocking the binding of p65 to the VCAM1 promoter through the physical association between KLF4 and p65.
+
+20) KLF4 binds to p65 and interacts with the promoter region of iNOS to promote its expression [26].",Database: trrust,24415532,33438746,29269260; 23702880; 24572258; 16169848; 24470523; 26617530; 23757395; 29459900; 22282354; 29146611,23364479
+FLI1,REST,RFC1,CDK2,TBCA,Complex,Complex,Complex,IncreaseAmount,0.4261616001712757,0.8302066725941236,0.8014533558209812,0.6163664161553967,1,1,2,1,0.32354835,0.0001394148784979,"1) Preliminary experiments investigating the interaction between EWS-FLI-1 and the REST promoter using CHIP assay indicated that EWS-FLI-1 may bind to the REST promoter (data not shown), suggesting that EWS-FLI-1 directly regulates REST expression.",Database: biogrid,"1) As shown in XREF_FIG, MALAT1 and HULC increased the interaction between RFC1 and PCNA, CDK2 and CyclinE.","1) Furthermore, down-regulation of TBCA expression in 786-O and Caki-1 cells affected cytoskeleton integration and cell size, induced S/G2 cell cycle arrest and led to cyclineA/E and CDK2 aberrant expression.",24415532,27976729,27782152; 35831314,23740643
+GABARAPL2,CEBPA,PHGDH,OGDH,COX7A2L,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.8302066725941236,0.4443350122709595,0.4844526880351076,1,1,1,1,-0.56487966,0.0002008015618275,Database: biogrid,Database: biogrid,"1) Malate dehydrogenase and oxoglutarate dehydrogenase complex are not encoded in the Z. mobilis genome [3, 29], which influences regeneration of NAD.","1) The siRNA-mediated knockdown of its subunits, DLD, DLST, and OGDH (Fig. 7a), substantially repressed the growth of COX7RP-overexpressing cancer cells in both hypoxic and normoxic conditions (Fig. 7b).",34189442,34189442,32690090,31511525
+GPR162,BCAM,EP300,GAPDH,OST4,Activation,IncreaseAmount,Acetylation,DecreaseAmount,0.3715222573296911,0.4844526880351076,0.4685724044975142,0.6324007949925685,1,1,1,1,-0.30639458,5.182036398349253e-05,"1) The grcA and trxA , known for their involvement in redox processes also implies that P. amboinicus EO has induced oxidative stress ( Lu and Holmgren, 2014 ; Ku and Gan, 2021 ).","1) Furthermore, Lu et al. found that USP12 enhances the p300 expression, leading to increased METTL3 expression.","1) It is known that nuclear-localized GAPDH is acetylated by p300/CBP and promotes p300/CBP autoacetylation, which in turn promotes p53 gene expression and induces apoptosis [ 16 ].
+
+2) Cytotoxic insults, acting via NO-GAPDH, lead to GAPDH binding to the protein acetylating enzyme p300, which in turn acetylates GAPDH leading to activation of p53 's transcriptional activity and induction of PUMA.
+
+3) Cytotoxic insults, acting via NO-GAPDH, lead to GAPDH binding to the protein acetylating enzyme p300, which in turn acetylates GAPDH leading to activation of p53’s transcriptional activity and induction of PUMA ( xref ).
+
+4) Nuclear GAPDH is acetylated by the histone acetyltransferase CBP and p300.
+
+5) After transfer into the nucleus, GAPDH is acetylated by the acetyltransferase, p300 and CBP.
+
+6) After transfer into the nucleus, GAPDH is acetylated by the acetyltransferase p300 and CBP, which in turn stimulates the acetylation and catalytic activity of p300 and CBP.
+
+7) After entering the nucleus, GAPDH is acetylated by p300 and CBP, an acetyltransferase, which in turn improves the catalytic activity and acetylation activity of p300 and CBP, activating downstream molecules including p53, all of which finally induces apoptosis.
+
+8) Nuclear GAPDH is acetylated by the p300 and CREB binding complex (CBP); this interaction, in turn, stimulates the catalytic activity of p300 and CBP.
+
+9) Mutation of GAPDH lys160 (K160R) or depletion of P300 and CBP by RNAi abolished GAPDH acetylation.
+
+10) Previously, we have shown that nitrosylated GAPDH is acetylated in the nucleus by the acetyltransferase p300 through direct protein protein interaction, which in turn stimulates the acetylation of p53 that leads to cell death (Sen et al., 2008).
+
+11) Furthermore, the p300 and CREB binding protein acetylates oxidative GAPDH to activate downstream p53.
+
+12) In the Neuro2a neuroblastoma cell line, homocysteine induces p300/CBP‐mediated nuclear translocation and acetylation of GAPDH,
+229
+ thereby enhancing the catalytic and acetylation activities of p300/CBP, activating downstream molecules such as p53 and promoting apoptosis.
+
+13) Earlier, we reported that cytotoxic insults, via the NO-GAPDH pathway, lead to binding of GAPDH to the protein acetylating enzyme p300, which in turn acetylates GAPDH and activates the transcriptional activity of p53, resulting in induction of PUMA.
+
+14) In the nucleus, the acetylating enzymes p300 and CBP acetylate GAPDH, causing it to activate auto-acetylation of p300 and CBP, which, in turn, acetylate and activate p53 (XREF_FIG) [XREF_BIBR].
+
+15) p300 and CBP acetylates nuclear GAPDH, thereby enhancing the ability of GAPDH to stimulate auto-acetylation of p300 and CBP.
+
+16) This result suggests a feed-forward activation cycle in which p300 and CBP acetylates GAPDH and enhances the ability of GAPDH to stimulate the acetylation of p300 and CBP; p300 and CBP further acetylates GAPDH XREF_BIBR.","1) Quantitative real-time PCR analysis of mRNA levels for ribophorin I and OST4 after transfection of HeLa cells with 21-nucleotide or 27-nucleotide-specific small interfering RNAs (siRib I, siOST421, siOST427, siOST427(B) and siOST427(C)) or with non-targeting control small interfering RNAs (nt, nt27) for 48 hours. mRNA levels were normalised to the corresponding GAPDH mRNA levels and expressed as a percentage of the levels in control cells.",38641078,40290189,25435139; 20843563; 39778006; 32469899; 26022259; 27690013; 21640161; 23719162; 25859407; 34358965,23606741
+GRB14,TRIM27,RET,USP9X,RPS27A,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.4073065404350923,0.5580645765199765,1,30,4,1,-0.1334641,1.549316317684321e-05,Database: biogrid,"1) Specifically, more than 40% of the IC cases harbored RET fusions, including NCOA4-RET, TRIM27-RET, and KIAA1217-RET [ xref , xref , xref ].
+
+2) Several kinase fusions were identified: STRN-ALK , EML4-ALK, AGK-BRAF , CUL1-BRAF , MKRN1-BRAF , SND1-BRAF , TTYH3-BRAF , EML4-MET , TFG-MET , IRF2BP2-NTRK1 , PPL-NTRK1 , SQSTM1-NTRK1 , TPR-NTRK1 , TPM3-NTRK1 , EML4-NTRK3 , ETV6-NTRK3, RBPMS-NTRK3 , SQSTM1-NTRK3 , CCDC6-RET , ERC1-RET , NCOA4-RET , RASAL2-RET , TRIM24-RET , TRIM27-RET , and CCDC30-ROS1 .
+
+3) It is subcategorized into intercalated duct, apocrine, and hybrid subtypes based on morphologic and immunohistochemical features, with frequent NCOA4-RET and TRIM27-RET fusions, respectively, seen in intercalated duct and hybrid tumors.
+
+4) It is subcategorized into intercalated duct, apocrine, and hybrid subtypes based on morphologic and immunohistochemical features, with frequent NCOA4-RET and TRIM27-RET fusions, respectively, seen in intercalated duct and hybrid tumors.
+
+5) It is subcategorized into intercalated duct, apocrine, and hybrid subtypes based on morphologic and immunohistochemical features, with frequent NCOA4-RET and TRIM27-RET fusions, respectively, seen in intercalated duct and hybrid tumors.
+
+6) It is subcategorized into intercalated duct, apocrine, and hybrid subtypes based on morphologic and immunohistochemical features, with frequent NCOA4-RET and TRIM27-RET fusions, respectively, seen in intercalated duct and hybrid tumors.
+
+7) Interestingly, a high frequency of RET fusion (42.4%), including NCOA4-RET and TRIM27-RET ,has been detected in salivary intraductal carcinomas, suggesting a role of RET fusion in the development of a particular type of salivary gland cancer  xref  .
+
+8) Specific molecular changes identified in IDC include NCOA4-RET (most common in the intercalated-duct type), TRIM27-RET (often in hybrid/mixed IDC), TRIM33-RET (often in oncocytic IDC), BRAF V600E mutations (often in oncocytic IDC), complex molecular alterations of HRAS and PIK3CA (apocrine IDC), and rarely STRN-ALK fusion (rare cases of IDC). xref , xref , xref , xref , xref In our cohort, all LG IDCs with available molecular sequencing data demonstrated NCOA4-RET fusions corresponding to the intercalated-duct type of morphology on histology.
+
+9) At least four forms have been elucidated based on histomorphology, immunophenotype, and molecular profile: (1) intercalated duct-like, S100/SOX10+ with frequent NCOA4::RET fusions; (2) oncocytic, S100/SOX10+ with TRIM33::RET, NCOA4::RET, and BRAF V600E; (3) apocrine, AR+ with PI3 kinase pathway mutations; and (4) mixed/hybrid intercalated duct-like/apocrine, with S100/SOX10+ and AR+ areas and frequent TRIM27::RET.
+
+10) In addition, a novel TRIM27-RET fusion transcript was identified in two ICs with apocrine features.
+
+11) Although hybrid variants are less common in the literature, the subset of cases tested by NGS that yielded positive findings was found to have only TRIM27-RET fusions [ xref , xref ], and the cases presented in our study are the first examples of hybrid variant IC with definitive NCOA4-RET fusions identified by NGS.
+
+12) Three tumors negative for ALK fusions instead harbored alternate RTK fusions (NCOA4::RET, TRIM27::RET, and VIM::NTRK3), and 1 tumor was negative for RTK alterations.
+
+13) Common molecular alterations included NCOA4-RET, TRIM33-RET, and TRIM27-RET fusions, and HRAS, PIK3CA, and BRAF V600E mutations.
+
+14) Furthermore, several studies have identified oncogenic RET fusions in varying subtypes of salivary gland carcinomas, namely ETV6-RET in mammary analogue secretory carcinomas ( xref – xref , xref ), NCOA4-RET in intercalated duct-line SDCs ( xref , xref , xref ), TRIM27-RET fusions in mixed intercalated duct-like and apocrine types of SDC ( xref , xref ), and TRIM33-RET fusions were recently detected in oncocytic intraductal carcinoma ( xref ).
+
+15) All cases harbored fusions: NCOA4::RET (n = 6), TRIM33::RET (n = 2), TRIM27::RET (n = 1), and STRN::ALK (n = 1).
+
+16) Emerging molecular data suggest that IDC comprises at least three distinct subtypes, characterized by recurrent NCOA4::RET rearrangements in the majority of cases with intercalated duct differentiation, TRIM27::RET fusions in cases with hybrid features, and a complex genetic profile including HRAS and PIK3CA hotspot mutations in the apocrine subtype.
+
+17) Over 80% of these COSMIC fusion occurrences were predicted to other COSMIC fusion-containing clusters, none as likely artifacts, and 11 (41%) of these had occurrences predicted to the COSMIC-enriched cluster C4 ( xref A and xref ), including KLK2::ETV1, LMNA::NTRK1, RUNX1::RUNX1T1, FUS::DDIT3, TMPRSS2::ETV5, MYB::NFIB, TFG::NTRK1, TRIM27::RET, MKRN1::BRAF, INTS4::GAB2, and NUP214::ABL1.
+
+18) Classification into the intercalated duct type and the apocrine duct type has been confirmed through molecular investigations: NCOA4-RET gene fusion is specific for the intercalated variant, and TRIM27-RET gene fusion is associated with the apocrine variant.
+
+19) In part because of the recent application of molecular profiling to better characterize IDC, it has been the subject of several histologic studies. xref – xref IDC exists along a histologic, immunophenotypic, and molecular spectrum and, on the basis of these parameters, can be classified into 4 emerging subtypes: 1) an intercalated duct type with S100 and mammaglobin immunoreactivity and an NCOA4-RET gene fusion; 2) an oncocytic type, also immunoreactive for S100 and mammaglobin, showing unique molecular alterations, including TRIM33-RET gene fusions and BRAF V600E mutations; 3) an apocrine type expressing androgen receptor and gross cystic disease fluid protein 15 (GCDFP-15) with a complex mutational profile, including HRAS and PIK3CA mutations; and 4) a hybrid/mixed type, which has overlapping histologic and immunoprofiles with the other IDC subtypes but more often with TRIM27-RET gene fusions.
+
+20) These include colorectal, xref )breast, xref )ovarian, xref )chronic myelomonocytic leukemia xref )and spitzoid tumors (Fig. xref B). xref )Large-scale analyses have revealed that RET fusion can be detected in 0.2% of colorectal cancers (6/3117 cases) xref )and 0.1% of breast cancers (8/9693 cases). xref )Recently, a high frequency of RET rearrangements (>40%) has been detected in salivary intraductal carcinomas, including NCOA4-RET (Fig. xref B) and TRIM27-RET , xref , xref )suggesting that its detection is useful for diagnosing a particular type of salivary carcinoma.","1) As shown in Fig.  xref , mice were exposed to the OF for 30 min one day before extinction (fam-Ret group).
+
+2) Subsequent exposure of the fam-Ret group to the same OF before retrieval-extinction, indicated familiarity rather than novelty.
+
+3) During extinction training, the fam-Ret, nov-Ret, and control groups froze equally ( F (2, 21) = 0.398, p  = 0.677) (see Supplementary Fig.  xref ).
+
+4) LTM test indicated that exposure to a novel OF 2 h before retrieval-extinction significantly enhanced extinction (main group effects: F (2, 21) = 19.44; post hoc comparisons: nov-Ret, p  < 0.001 vs . control), but exposure to a familiar OF had no effects (fam-Ret, p  = 0.336 vs . control) (Fig.  xref ).","1) Here we provide data suggesting that two of the four mammalian ubiquitin precursors, UBA52 and UBA80, are processed mostly post-translationally whereas the other two, UBB and UBC, probably undergo a combination of co- and post-translational processing. Using an unbiased biochemical approach we found that UCHL3, USP9X, USP7, USP5 and Otulin/Gumby/FAM105b are by far the most active DUBs acting on these precursors.",32296183,40002255; 32326537; 35957881; 37184732; 32737449; 38935197; 32660844; 39000457; 32661669; 35026433,32094477,26235645
+GPSM3,PHF1,RBBP7,LGALS1,LGALS8,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.8226256011114469,0.8302066725941236,0.4844526880351076,1,7,1,1,-1.6624054,0.0394719554941204,Database: biogrid,Database: biogrid,Database: biogrid,1) Lack of Galectin-1 Induces Compensatory Expression of Galectin-8 in Immortalized RPE Cells In Vitro.,33961781,33961781; 18385154; 24981860; 27705803; 18285464; 29846670,37689310,37628816
+GPSM3,PHF1,RBX1,MTA2,LRBA,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.8329154561839106,0.8302066725941236,0.4738574987008168,1,2,1,1,-1.605459,0.0228558579918925,Database: biogrid,Database: biogrid,Database: biogrid,1) LPS responsive beige like anchor protein (LRBA) deficiency is a novel PID caused by either homozygous or compound heterozygous mutations in LRBA that abolish LRBA protein expression.,33961781,29846670,34026424,27766253
+GPSM3,PHF1,PRNP,LEF1,KLHDC10,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.4261616001712757,0.6301266297471854,1,1,1,1,-1.6014093,0.0257036788652483,Database: biogrid,Database: biogrid,"1) In the peripheral lymphoid system, PrP is associated with follicular dendritic cells that are known to be important for replication of infectivity for at least one TSE strain.",Database: biopax,33961781,36543142,10871547,
+GPSM3,PHF1,RBX1,ELK1,C1orf50,Complex,Complex,Ubiquitination,DecreaseAmount,0.8302066725941236,0.8329154561839106,0.5947172532880094,0.6301266297471854,1,2,1,1,-1.2706735,0.0318129338043283,Database: biogrid,Database: biogrid,"1) The F-box protein FBXO25 promotes the proteasome-dependent degradation of ELK-1 protein. FBXO25 is one of the 69 known human F-box proteins that serve as specificity factors for a family of ubiquitin ligases composed of SKP1, Rbx1, Cullin1, and F-box protein (SCF1) that are involved in targeting proteins for degradation across the ubiquitin proteasome system. FBXO25 interacted with and mediated the ubiquitination and proteasomal degradation of ELK-1 in HEK293T cells.",Database: biopax,33961781,29846670,23940030,
+GPSM3,PHF1,RBX1,MTOR,PWP1,Complex,Complex,Dephosphorylation,IncreaseAmount,0.8302066725941236,0.8329154561839106,0.4932129488817893,0.4844526880351076,1,2,1,1,-0.8914811,0.0003188099582863,Database: biogrid,Database: biogrid,"1) Consistent with the observation that ablation of CUL3 or RBX1 reduced amino acid-induced mTORC1 activation without affecting lysosomal mTOR localization and Akt phosphorylation (Figures 1A, 2A, 2D, and S1A), ablation of KLHL9 in EMSCs (Figures 7A, S4A, and S4B) or HEK293T cells (Figure 7B) also decreased amino acid-induced mTORC1 activation without affecting lysosomal mTOR localization (Figure S4C).","1) In addition to phosphorylation, PWP1 gene expression is promoted by IIS/mTOR signaling through Myc transcription factor (Liu et al. 2017).",33961781,29846670,39708321,32554565
+GPSM3,PHF1,RBBP7,ZNF219,HMGN1,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.8226256011114469,0.8216256011114469,0.4844526880351076,1,7,3,1,-0.35017675,0.0004049415654958,Database: biogrid,Database: biogrid,Database: biogrid,"1) For example, Sakai et al. 25 reported that ZNF219 could modulate the expression of the HMGN1 gene directly by binding its upstream DNA sequence.",33961781,33961781; 18385154; 24981860; 27705803; 18285464; 29846670,28514442; 33961781; 26186194,29379079
+HHAT,STAT3,BCL3,ERBB2,RNF126,Phosphorylation,Inhibition,Activation,IncreaseAmount,0.565177305878659,0.4357402620936744,0.3715222573296911,0.5028536023408147,1,1,1,3,-1.3393217,0.0232693024223771,"1) In the present study, it was found that SKN inhibited colon cancer cell growth, suppressed both constitutive and IL-6-induced STAT3 phosphorylation, and downregulated the expression of ADAM17.","1) Notably, STAT3 restoration could abrogate the influence of BCL3 shRNA on proliferation and the process of cell cycle in CC cells.",1) Bcl3 selectively promotes metastasis of ERBB2 driven mammary tumors.,"1) Therefore, we first tested whether HER2 positively regulates RNF126 expression.
+
+2) It is worth noting that, HER2 is possibly necessary but not sufficient to induce RNF126 expression.
+
+3) In TNBC, IR stimulates HER2 expression to further activate AKT and NF‐κB pathways, thereby boosting the expression of RNF126.",34726248,27822067,23149915,36563124
+ABCA5,RAB7A,LRPPRC,MIR205,ABCA5,Inhibition,Complex,Complex,DecreaseAmount,0.414159988237093,0.8302066725941236,0.8302066725941236,0.6324007949925685,1,1,1,1,-2.8637323,0.039374999776927,"1) Interestingly, the inactivation of Rab7a by TBC1 domain family member 5 (TBC1D5), a Rab7a GTPase-activating protein (GAP), promotes the release of retromer from endosomes ( xref ; xref ).",Database: biogrid,Database: biogrid,"1) Bcl-2 and the ATP-binding cassette transporters ABCA2 and ABCA5 are direct targets of miR-205. (A) qRT-PCR analysis of ABCA2, ABCA5, Bcl-2, E2F1 and ZEB1 in SK-Mel-147 infected with lentivirus expressing miR-205 (gray bars).",35601613,26496610,28431233,22871739
+INPP5B,RAC1,CDH1,CASP3,GLRX3,Activation,Complex,DecreaseAmount,DecreaseAmount,0.3715222573296911,0.6709342592493139,0.4738574987008168,0.6324007949925685,1,10,1,1,-1.150142,0.0001810082481065,"1) The significance of the RhoGAP related segment in these proteins remains unclear, as INPP5B did not associate with or stimulate the activity of Cdc42, Rac1, RhoA, H-Ras, or Rab5B in vitro [96].","1) Directly adsorbed Ecad/Fc exhibited qualitatively similar recruitment of Rac1 and E-cadherin to the sites of bead / cell interaction, as illustrated in the second row of XREF_FIG.
+
+2) XREF_BIBR, XREF_BIBR It has been shown that functional interaction between Rac1, a small Rho family GTPase, and E-cadherin is responsible for regulating hPSC self-renewal.
+
+3) 63 The activation of Rac1 through PI3K by E-cadherin-mediated cell-cell adhesion involves at least two steps as follows : (1) recruitment of Rac1 to E-cadherin mediates cell-cell contact sites and (2) Rac1 activation by a guanine nucleotide exchange factor.
+
+4) Notably, PP2A mediates recruitment of the Ras GTPase-activating-like protein, IQGAP1, to Rac1 bound E-cadherin and catenin complexes, thereby promoting E-cadherin stabilization; deregulation of PP2A by OA, or silencing of the A subunit is associated with dissociation of IQGAP1, E-cadherin internalization, F-actin disassembly and AJ disruption.
+
+5) Up-regulated Rac1 promotes the invasion of B-lymphoma cells and the metastasis of breast cancer cells xref , xref , whereas down-regulated Rac1 is associated with reduced E-cadherin expression and the reduced invasion of melanoma cells xref .
+
+6) Endogenous Rac1 and E-cadherin signaling pathways form an intrinsic key for the regulation of hiPSC fate decisions.
+
+7) These different results may be explained by a cell type-specific regulation of Rac1-E-cadherin signaling and function depending on the availability of different IQGAP1-binding protein, such as menin in β-cells [40] .
+
+8) Functional interaction between Rac1, a small Rho family GTPase, and E-cadherin have been demonstrated to be responsible for the regulation of hPSC self-renewal [45,46].
+
+9) Li et al. (16) also demonstrated that functional interaction between the small Rho family GTPase Rac1 and E-cadherin is responsible for regulating hESC self-renewal (20) .
+
+10) Since downregulation of PP2A-A by siRNA causes the loss of IQGAP1, but not Rac1, in E-cadherin–catenins complex of HME cells  [25] , the present results suggest that recruitment of IQGAP1 to Rac1-bound E-cadherin–catenins complex requires the presence of PP2A-A. Coprecipitation of Rac1 and α-catenin with β-catenin in E-cadherin-deficient MDA-MB-231 cells suggests that Rac1 does not interact with E-cadherin but with catenins complex, consisting of α- and β-catenins.
+
+11) Together, these results indicate that Rac1 enhances the accumulation of actin filaments, E-cadherin, and beta-catenin by acting on IQGAP1 and suggest that there exists a positive feedback loop comprised of &quot;E-cadherin-mediated cell-cell adhesion --> Rac1 activation --> actin-meshwork formation by IQGAP1 --> increasing E-cadherin-mediated cell-cell adhesion.&quot;
+
+12) In β-cells menin might be an important regulator in the differential interaction of IQGAP1 with Rac1 or the E-cadherin-adhesion complex [ xref ].
+
+13) We previously reported a Rac1-dependent physical interaction between endogenous FMNL2 and E-Cadherin [ xref ].","1) As anticipated, E-cadherin upregulation augmented the expression of apoptotic inhibitory gene Bcl-XL, inhibited the expression of pro apoptotic gene Caspase-3, and resulted in a decrease in the number of apoptotic cells after reseeding dissociated hESCs in the clonogenic assay.","1) Here, we demonstrate that PICOT is a cleavage substrate of the apoptosis-related protein caspase-3.",12618308,24523903; 14699063; 20368760; 16930554; 35726387; 27096107; 19737400; 30895176; 29579104; 25468424,20513387,23415866
+KALRN,BCL2,RELA,NFATC1,TMEM64,IncreaseAmount,Inhibition,IncreaseAmount,IncreaseAmount,0.4844526880351076,0.4357402620936744,0.4844526880351076,0.4844526880351076,1,1,1,1,-1.4239678,0.0390531225596013,"1) The analysis by Annexin V/PI also showed that the treatment with Duo plus Dist (0.5 μg/ml) suppressed Duo-induced apoptosis in HLC-2 cells.We also found that Dist can induce the expression of p53, and consequently p21 and Bcl-2, but not Bax in HLC-2 cells.","1) Overexpression of Bcl-2 normalizes ER calcium homeostasis and prevents calcium mediated apoptosis in RelA deficient cells.
+
+2) In contrast, the expression of Bcl2, XIAP and IkappaBalpha mRNA stimulated by cisplatin or mitomycin C treatment were unaffected by depletion of either p65, p50 or BRCA1 (XREF_FIG), indicating that activation by these damagers in our system is independent of p65 and p50 the most abundant NF and kappaB complex.
+
+3) Overexpression of Bcl-2 in 293 cells can block apoptosis in these cells and, curiously, can also suppress the transactivation function of RelA (Grimm et al., 1996).
+
+4) Furthermore, we found that the ER-targeted Bcl-2 also degraded nuclear p65 (Supplemental Figure 5B) and interacted with p65 (Supplemental Figure 5, B and C).
+
+5) While the WT Bcl-2 caused degradation of nuclear p65, the BH1, BH4, or the triple-phosphorylation mutants did not affect the levels of nuclear p65 (Figure 5E).
+
+6) Furthermore, expression of Bcl-2 in Bcl-2–deficient HEK293T cells caused degradation of nuclear p65, which was restored by MG132 treatment.
+
+7) Regulation of inflammation solely by regulation of nuclear p65 levels that does not involve translocation of p65 may be an important mechanism for many chronic conditions.Consistent with the proteomics data of immunoprecipitates from nuclear lysates of WT and Bik-deficient MAECs, the presence of Bik was required for Bcl-2 to interact with RPN1 and RPN2, confirming the role of RPN1 and RPN2 in Bik/Bcl2-mediated degradation of nuclear p65.
+
+8) Our findings that the proteasomal inhibitor MG132 blocks Bik/Bcl-2–mediated reduction of nuclear p65 and inflammation together with the interaction Bik/Bcl-2/p65 with RPN1 and RPN2 supports the idea that Bik, acting through Bcl-2, may be crucial for nuclear localization of the proteasome (Figure 8).
+
+9) In HG-cultured HUVECs and HAECs, apigenin inhibited HG-induced PKCβII activation and ROS generation, increased Bcl-2 expression and the p-Akt/Akt ratio, and reduced Bax and caspase-3 expression and the NF-κB subunit p-p65/p65 ratio.","1) The phosphorylated p65 subunit is then translocated into the nucleus and enhance the expression of NFATc1 [ 5 ].
+
+2) The expression of c-FOS, p65, and NFATc1 induced NFATc1 reporter gene transcription (XREF_FIG B).
+
+3) Based on these studies, we hypothesized that TRAF6 and NF-kappaB p65 pathway may be involved in CD137 signaling induced expression of NFATc1 and its downstream factors expression in mice VSMCs.
+
+4) This process releases NF-kappaB p65, which is then translocated to the nucleus to promote the transcription of NFATc1.
+
+5) Expression of NFATc1, c-Fos, or p65 increased Nfatc1 reporter gene transcription.
+
+6) Activated NF-κB is transported into the cell nucleus, where the p50 and p65 subunits induce increased expression of c-Fos and NFATc1.
+
+7) This process releases NF-κB p65, which is then translocated to the nucleus to promote the transcription of NFATc1 [31,32] .
+
+8) Translocation of NF-κB p65 into the nucleus induces early expression of NFATc1, one of the most pivotal transcription factors in osteoclastogenesis.","1) Interestingly we also showed that cyclosporin A treatment significantly inhibited RANKL induced Tmem64 mRNA expression (XREF_SUPPLEMENTARY), suggesting that NFATc1 is mediating the upregulation of Tmem64 mRNA expression during osteoclast differentiation.",17321782,39064844; 15814613; 38113109; 23435429; 10727020,26600673; 38310228; 33377656; 31751538; 38643905; 32781784; 34182052; 32079267,23395171
+KDELR2,RET,CD74,ELANE,KDELR2,Complex,Complex,Complex,IncreaseAmount,0.4261616001712757,0.422856899694916,0.4244737435129522,0.4715315630410047,1,3,2,2,-1.186291,1.141276465077406e-12,"1) The Oncomine Focus Assay (Thermo Fisher Scientific) does not cover five of the 18 gene fusions and therefore the following samples tested negative: Sample 2 ( LMNA - NTRK1 ), sample 4 ( HLA-DRB1 - MET ), sample 5 ( KDELR2-RET ), sample 17 ( FGFR2 - TACC2 ) and sample 18 ( FGFR2 -CBX5) (Fig.  xref b).","1) Similarly, inhibitors blocking the MAPK/ERK and AKT/mTOR pathways also augmented MHC-II expression, suggesting their implications in RET-MHC-II signaling axis.
+
+2) Likewise, while thousands of CD74-ROS1 clones emerged, no clones with CD74-ALK, CD74-RET, or CD74-NTRK1 fusions emerged in PC9 cells expressing CIITA ( xref ).
+
+3) Likewise, while thousands of CD74-ROS1 clones emerged, no clones with CD74-ALK, CD74-RET, or CD74-NTRK1 fusions emerged in PC9 cells expressing CIITA (Fig.  xref ).","1) In addition to preventing JNK activation, PBA also prevented HNE-induced LC3-II formation ( xref B) and HO-1 induction ( xref C).
+
+2) These interventions decreased HNE-induced LC3-II formation and prevented HO-1 induction in HNE-treated cells.","1) Thus, 100 ng/mL NE and 6 μM 4μ8C for 24 h were selected as the appropriate concentrations for stimulation (Figures S4 and S9A,D).3.7
+
+
+NE induces the overexpression of KDELR2 and ISR-associated proteins, and promotes the ER-like localization of KDELR2
+.
+
+2) Compared with controls, NE induced higher expression levels of XBP1, XBP1s and KDELR2, as measured by Western blot analysis.",33639937,38313284; 34874277; 38877018,24024137,39365189
+LAPTM4A,PRTN3,REN,SP1,LAPTM4A,Complex,Activation,Complex,DecreaseAmount,0.4443350122709595,0.396856880714167,0.4443350122709595,0.6301266297471854,1,1,1,1,-0.9113737,3.752813800137277e-08,"1) FpvA from Pseudomonas aeruginosa ATCC 15692 recognizes pyoverdine metal binding sites, permitting some binding to noncognate pyoverdines, and Mbn binding to MbnT could conceivably be similar.","1) Since both EDTA and phenylmethanesulphonyl fluoride could inhibit the activation of inactive renin by this metalloproteinase, it is suggested that the enzyme activates serine proteinase(s), which then activate inactive renin.","1) Taken together the phenomenon, indicated that genetic variations C-5312T of renin enhancer causes differences of Sp1 binding to renin enhancer (XREF_FIG).",Database: biopax,29668305,6452170,24497727,
+LSP1,BCL3,RELB,LEP,CLN5,Complex,Complex,Activation,IncreaseAmount,0.4261616001712757,0.4261616001712757,0.3715222573296911,0.4844526880351076,1,1,1,1,-1.2464106,0.0253701580863701,"1) Instead, an alternative LSP1-dependent signaling complex is assembled, resulting in the nuclear translocation of Bcl-3, which pairs with p50/p50 homodimers to drive the transcription of Th2-associated cytokines and chemokines ( xref ).","1) It has been reported that p52 forms heterodimers with RelB or Bcl3 to initiate expression of target genes.
+
+2) Nfkb2 is known to form transcription factor complexes with RelB and/or Bcl3 as part of the 'alternative' NF-KB pathway, often associated with B-cell maturation and lymphoid development [ xref ].
+
+3) It has been reported that p52 forms heterodimers with RelB or Bcl3 to initiate expression of target genes.
+
+4) The focus of this review is on p52, its DNA binding as a homodimer, its cofactor functions, interactions with its coregulators Bcl3 and RelB, and its role in pathogenesis from the viewpoint of biochemical mechanisms.","1) RelB   MPCs have increased OB differentiation, which is inhibited by Runx2 siRNA.","1) Leptin alone induces barrier dysfunction in intestinal Caco-2 cells by increasing paracellular permeability and decreasing the expression of ZO-3 and Cln-5 [ 51 ], and resistin increases paracellular permeability and reduces ZO-1 and occludin expression in human coronary artery endothelial cells.",30761125,34888310; 32019974; 14678988; 19664281,37749800,33991612
+MANEA,RET,CD74,IFNG,CAP1,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.422856899694916,0.3715222573296911,0.4684848027297138,1,3,1,2,-0.49272284,0.0001135951980998,Database: biogrid,"1) Similarly, inhibitors blocking the MAPK/ERK and AKT/mTOR pathways also augmented MHC-II expression, suggesting their implications in RET-MHC-II signaling axis.
+
+2) Likewise, while thousands of CD74-ROS1 clones emerged, no clones with CD74-ALK, CD74-RET, or CD74-NTRK1 fusions emerged in PC9 cells expressing CIITA ( xref ).
+
+3) Likewise, while thousands of CD74-ROS1 clones emerged, no clones with CD74-ALK, CD74-RET, or CD74-NTRK1 fusions emerged in PC9 cells expressing CIITA (Fig.  xref ).","1) In particular, inhibition of (IFN)-gamma secretion in microglia seems to play a crucial role in the prooncogenic role of MIF, as blockade of MIF and CD74 interaction promotes IFN-gamma release and amplifies tumor death.
+
+2) Both catS -/- and Ii -/- iNKT cells were able to produce IFN-gamma but produced less TNF.
+
+3) Additionally, CD74 expression in cells increases in response to IFN-γ [68].
+
+4) Interestingly, CD74 siRNA inhibits atherosclerosis by reducing interferon-gamma (IFNγ)-induced NF-κB activation and monocyte chemoattractant protein-1 (MCP-1) production in human vascular smooth muscle cells, and preventing vascular smooth muscle cells activation (49).
+
+5) DM -/- and DM -/- Ii -/- mice produce IFN-gamma and IL-17 but not IL-4 and IL-10.","1) On the contrary, IFN-gamma significantly reduced CAP1 mRNA expression in both cell types.
+
+2) [XREF_BIBR] In contrast with IL-4/13, our study indicated that IFN-gamma decreased KLK5, KLK7, matriptase, and CAP1 expression, while significantly increased caspase14 expression in both LC and HC culture conditions and tissue sections of AD.",33961781,38313284; 34874277; 38877018,19342667; 29707160; 36712241; 21565221,26831231
+MAP3K6,PEX5,RAD51B,PAX2,TMEM53,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.4261616001712757,0.4261616001712757,0.6301266297471854,1,1,1,1,1.3743119,0.0345855808806136,Database: biogrid,"1) In the phytopathogenic fungus U. maydis, which causes smut disease on corn ( xref ), we have identified two Pex5-paralogs – termed Pex5a and Pex5b ( xref ).",1) Studies have shown that Hox11 paralogs interact with Pax2 and Eya1 to induce transcription of direct downstream targets such as SIX2 and GDNF ( xref ; xref ).,Database: biopax,33961781,35646929,32266264,
+MFSD4B,PRKAG1,RAC1,SPI1,RUFY1,Complex,Complex,Activation,DecreaseAmount,0.8216256011114469,0.8302066725941236,0.3715222573296911,0.6301266297471854,3,1,1,1,-1.5021538,0.0263568232525135,Database: biogrid,Database: biogrid,"1) As described in previous sections, Rac1 promotes SPI1 dependent membrane ruffles by activating the WRC, in conjunction with Arf1.",Database: biopax,28514442; 33961781; 26186194,31871319,28848711,
+MGA,RBBP5,BAZ2B,CEBPA,CMSS1,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.8302066725941236,0.6301266297471854,1,1,1,1,-0.80168575,0.0001421082374839,Database: biogrid,Database: biogrid,Database: biogrid,Database: biopax,35831314,37689310,34189442,
+MICALL2,RAC1,CDH1,GEM,CHMP1A,Inhibition,Complex,Inhibition,IncreaseAmount,0.4357402620936744,0.6709342592493139,0.4357402620936744,0.4844526880351076,1,10,1,1,-1.4085084,0.0498994942815116,"1) Thus, it is likely that MICALL2 prevents EGFR autophagy in a Rac1-dependent manner.","1) Directly adsorbed Ecad/Fc exhibited qualitatively similar recruitment of Rac1 and E-cadherin to the sites of bead / cell interaction, as illustrated in the second row of XREF_FIG.
+
+2) XREF_BIBR, XREF_BIBR It has been shown that functional interaction between Rac1, a small Rho family GTPase, and E-cadherin is responsible for regulating hPSC self-renewal.
+
+3) 63 The activation of Rac1 through PI3K by E-cadherin-mediated cell-cell adhesion involves at least two steps as follows : (1) recruitment of Rac1 to E-cadherin mediates cell-cell contact sites and (2) Rac1 activation by a guanine nucleotide exchange factor.
+
+4) Notably, PP2A mediates recruitment of the Ras GTPase-activating-like protein, IQGAP1, to Rac1 bound E-cadherin and catenin complexes, thereby promoting E-cadherin stabilization; deregulation of PP2A by OA, or silencing of the A subunit is associated with dissociation of IQGAP1, E-cadherin internalization, F-actin disassembly and AJ disruption.
+
+5) Up-regulated Rac1 promotes the invasion of B-lymphoma cells and the metastasis of breast cancer cells xref , xref , whereas down-regulated Rac1 is associated with reduced E-cadherin expression and the reduced invasion of melanoma cells xref .
+
+6) Endogenous Rac1 and E-cadherin signaling pathways form an intrinsic key for the regulation of hiPSC fate decisions.
+
+7) These different results may be explained by a cell type-specific regulation of Rac1-E-cadherin signaling and function depending on the availability of different IQGAP1-binding protein, such as menin in β-cells [40] .
+
+8) Functional interaction between Rac1, a small Rho family GTPase, and E-cadherin have been demonstrated to be responsible for the regulation of hPSC self-renewal [45,46].
+
+9) Li et al. (16) also demonstrated that functional interaction between the small Rho family GTPase Rac1 and E-cadherin is responsible for regulating hESC self-renewal (20) .
+
+10) Since downregulation of PP2A-A by siRNA causes the loss of IQGAP1, but not Rac1, in E-cadherin–catenins complex of HME cells  [25] , the present results suggest that recruitment of IQGAP1 to Rac1-bound E-cadherin–catenins complex requires the presence of PP2A-A. Coprecipitation of Rac1 and α-catenin with β-catenin in E-cadherin-deficient MDA-MB-231 cells suggests that Rac1 does not interact with E-cadherin but with catenins complex, consisting of α- and β-catenins.
+
+11) Together, these results indicate that Rac1 enhances the accumulation of actin filaments, E-cadherin, and beta-catenin by acting on IQGAP1 and suggest that there exists a positive feedback loop comprised of &quot;E-cadherin-mediated cell-cell adhesion --> Rac1 activation --> actin-meshwork formation by IQGAP1 --> increasing E-cadherin-mediated cell-cell adhesion.&quot;
+
+12) In β-cells menin might be an important regulator in the differential interaction of IQGAP1 with Rac1 or the E-cadherin-adhesion complex [ xref ].
+
+13) We previously reported a Rac1-dependent physical interaction between endogenous FMNL2 and E-Cadherin [ xref ].","1) In this model, when CycE was low Gem was degraded by APC Fzr and Cdh1, allowing preRC licensing through Cdt1 and Dup.","1) Because AA, 5-FU and GEM are known to alter the signaling activity of ATM and/or p53 [XREF_BIBR, XREF_BIBR - XREF_BIBR], we examined whether AA, 5-FU or GEM activated Chmp1A - ATM - p53 signaling pathway by examining the protein levels of Chmp1A, and the phosphorylated form of ATM and p53.",38203692,24523903; 14699063; 20368760; 16930554; 35726387; 27096107; 19737400; 30895176; 29579104; 25468424,22037307,29463243
+MRPL34,RAP1A,RELA,MT-CO2,MT-ND4L,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8329154561839106,0.4261616001712757,0.6039386725059381,0.4738574987008168,2,1,3,1,0.5764586,2.173432759289929e-07,Database: biogrid,"1) Interestingly, our findings revealed that EYA4 overexpression markedly abrogated IκBα phosphorylation, IκBα polyubiquitination, subsequent p65 nuclear translocation, and the binding of p65 to RAP1A promoter induced by TNF-α.
+
+2) Interestingly, our findings revealed that EYA4 overexpression markedly abrogated IkappaBalpha phosphorylation, IkappaBalpha polyubiquitination, subsequent p65 nuclear translocation, and the binding of p65 to RAP1A promoter induced by TNF-alpha.
+
+3) Activation of NF-κB with tumor necrosis factor-α (TNF-α) increased the binding of p65 to the RAP1A gene promoter and up-regulated RAP1 protein expression.
+
+4) The results showed that the stimulation of TNF-α, a key pro-inflammatory cytokine that is well known to be responsible for elevating NF-κB activity, increased the binding of p65 to the promoter region of RAP1A, and this effect was blocked by the ectopic expression of pEYA4 (Fig.  xref b).","1) Then, the activated dimer p50/p65 NF-κB bound to the promoter of Cox2 to increase the transcription of Cox2 [161] .
+
+2) Knockdown of Glrx in TSC2-deficient LAM cells increased GSH adducts on nuclear factor-kappa B p65, which contributed to a decrease in the expression of Cox2 and the biosynthesis of PGE2.","1) Moreover, under high-temperature stress, S. incognitus showed increased transcript levels of COI, COII, COIII, ND3, ND5, CYTB, and ATP6 at 34 °C, while reducing the transcript level of ND4L.",28514442; 33961781,29764501,35335994; 37478294,38891717
+MT1F,BAX,SLC25A3,TP53,MRPL41,Activation,Complex,Acetylation,IncreaseAmount,0.4078495255712473,0.422856899694916,0.4593313146240882,0.4583769289308221,3,3,1,1,-0.43830308,0.0004119763849758,"1) Therefore, we compared inhibition of Bax membrane-permeabilizing activity by the anti-apoptotic protein Bcl-XL for Bax activated by OICR766A and cBid mt1.
+
+2) Thus, whereas OICR766A-activated Bax mimics cBid mt1-activated Bax, given the difference in sensitivity to Bcl-XL and the data above suggesting the compound activates soluble Bax, we speculated that the mechanism of Bax activation by OICR766A is different from activation by BH3 proteins.
+
+3) Therefore, Bax is not required for the formation of the multiple-component complex but competes with BH3 proteins for binding to Bcl-x L . Moreover, Bax activated by cBid mt1 (a mutant that does not bind Bcl-x L ) reduced FRET between Bcl-x L proteins ( Figure S1 G).","1) Our findings demonstrate that following ethanol exposure within this developing region, mitochondrially-localized Bax interacts with PTP proteins of both the outer mitochondrial membrane (VDAC) and the inner mitochondrial membrane (ANT), interactions which are conducive to an apoptotic outcome, with such pro-apoptotic associations seen predominantly at the age of greater ethanol sensitivity, compared to the later resistant age.
+
+2) Bax Interactions with PTP Proteins: BAX-VDAC Associations.
+
+3) Bax Interactions with PTP Proteins: BAX-ANT.
+
+4) Indeed, the yeast ortholog of PHC (i.e., Mir1p) is required for the hydrogen peroxide-induced mitochondrial targeting of the only protein from Saccharomyces cerevisiae that contains a bona fide BH3 domain (i.e., Ybh3p), and a similar interaction between PHC and BAX occurs in human cancer cells responding to stress [43] .
+
+5) Indeed, the yeast ortholog of PHC (i.e., Mir1p) is required for the hydrogen peroxide-induced mitochondrial targeting of the only protein from Saccharomyces cerevisiae that contains a bona fide BH3 domain (i.e., Ybh3p), and a similar interaction between PHC and BAX occurs in human cancer cells responding to stress [43] .","1) In addition, PTP induced acetylation of p53 at Lys382 in a p300-dependent manner, but sirtuin (SIRT)1 and histone deacetylase (HDAC)1, a well-known p53-regulating deacetylase, were not involved.","1) In the presence of apoptotic stress, PHB1 and PHB2 recruit p53 to the PIG3 gene, leading to p53-induced PIG3 transcription and PIG3-mediated apoptosis.",32001105; 26916338,27161573; 22767450,25338966,37190120
+NCOA5,RELA,REL,IRF7,CHMP3,Activation,Complex,Phosphorylation,DecreaseAmount,0.3715222573296911,0.4321616952089651,0.565177305878659,0.6301266297471854,1,6,1,1,-0.68882304,0.0002369805388083,"1) According to the results of Fig. 8 C, compared with the Control group, CIA group can significantly promote the nuclear transport of NF-κBp65 ( p < 0.001).","1) The binding of truncated p65
+(lane 3), but not of p50 (lane 1), is inhibited by IKB (lane 4),
+indicating that IKB specifically interacts with the rel region of p65.
+
+2) In addition, both  IKB-3' (Liou et
+al., 1992) and Bcl-3 (Franzoso et al., 1992;  Naumann et al., 1993;
+Nolan et al., 1993; Wulczyn et al.,  1992) are specific for NF-KB p50
+dimers, and only IKB-~  and IKB-13 interact with p65 and c-Rel, thus
+indicating that  the responsibility for regulating the prototypicai
+NF-KB ac-  tivity is primarily carried out by these IKB isoforms.
+
+3) IKB proteins can bind to p65 or
+c-Rel but not delectably to p50 (Zabel and Baeuerle, 1990; Kerr et
+al., 1991; Davis et al., 1991; Urban et al., 1991).
+
+4) The amounts of p65 or c-Rel associated with each IκB were reduced when the IκB was degraded, and increased as the IκB was resynthesised, following stimulation.
+
+5) Within the Rel/NF-κB/IκB family, MA significantly inhibits c-rel and RelA, which interact directly with intracellular Ca 2+ -loaded calmodulin, a highly conserved, ubiquitously expressed Ca 2+ -binding protein that serves as a key modulator of intracellular Ca 2+  signals, and that binds c-rel and RelA after their release from the IκB and can inhibit nuclear import of c-rel while allowing RelA to translocate to the nucleus and act on its target genes  [25] .
+
+6) Different dimers are held in the cytoplasm by interaction with specific inhibitors: dimers containing p65 or cRel associate with the IκBs (Inhibitors of κB), which include IκBα, IκBβ, and IkBϵ  (Whiteside and Israel, 1997) .
+
+7) In mammalian cells, I kappa B alpha and I kappa B beta proteins have been purified and shown to be the inhibitors of NF-kappa B through their association with the p65 or c-Rel subunits.
+
+8) In young cells, however, the promoter is only tri-methylated and bound by both p65 and c-Rel proteins.
+
+9) Within the heterodimeric context, the p50 subunit binds to the 5′ half-site, composed of 5 bp (5′-GGGRN-3′), whereas the p65 and c-Rel subunits bind to the 3′ half-site, composed of 4 bp (5′-TTCC-3′)  [14,15] .
+
+10) IκBα, IκBβ, and IκBϵ, on the other hand, contain six ankyrin repeats, preferentially bind p65 and c-rel proteins, and show a widespread distribution among cells.
+
+11) Thus, promoter binding of p65, c-Rel and RelB is usually associated with gene transactivation xref , xref – xref .
+
+12) p50 and p52 induce gene transcription by forming heterodimers with p65, c-Rel, or RelB, all of which contain a transactivation domain.
+
+13) Notably, only p65, c-Rel, and RelB harbor a transcription activation domain (TAD), whereas p50 and p52 lack this TAD, and thereby may repress transcription when they are not associated with p65, c-Rel or RelB.
+
+14) The five members of the mammalian NF-κB transcription factor family are p65 (RelA), RelB, c-Rel, p105/p50 (NF-κB1) and p100/p52 (NF-κB2), which associate with each other to form various transcriptionally active homo- and hetero-dimeric complexes.
+
+15) As expected, RelAp43 interacts with p105/p50, p100/p52, RelA, RelB and c-Rel.
+
+16) The NF-κB family includes five members, p65 c-Rel, RelB, p105/p50 and p100/p52 that form homo- or heterodimers [ xref ].
+
+17) RelB forms transcriptional inactive complexes with the subunits RelA and c-Rel.
+
+18) Complex assembly of c-Rel, RelA and RelB with their inhibitors, the I κ Bs, in the cytoplasm results in inactivity as the interaction masks the nuclear localisation signal of the NF- κ B family members ( xref ; xref ).
+
+19) As p50 and p52 lack this domain, they need to form heterodimers with RelA, c-Rel, or RelB to activate transcription of target genes.
+
+20) The vertebrate members include the c-Rel, RelA, RelB, NFKB1/p105 and NFKB2/p100 proteins that form homo- or heterodimers with one another and bind to similar sites.","1) Phosphorylated IRF7 (pIRF7) also translocates to the nucleus to stimulate type I interferon production, essential for antiviral responses.36 Next, we examined the impact of TLR9 expression on its downstream signaling molecules REL, NEMO, and IRF7.",Database: biopax,34741869,29225710; 28801231; 18675321; 21915344; 19583839; 8862416; 19519322; 21113390; 34188167; 9079634,39992671,
+NDUFAF1,RGN,ATP2B4,HRAS,ATP5F1E,Inhibition,Complex,Complex,IncreaseAmount,0.4088868321097361,0.4261616001712757,0.8216256011114469,0.4844526880351076,3,1,3,1,-0.18212067,6.994728117011491e-05,"1) Thus, zebrafish organ-level experimental studies suggest both vitamin E and NAC have therapeutic value in the setting of adding resiliency and reducing or preventing brain death that occurs in the setting of RC complex I inhibition.
+
+2) Both NAC and vitamin E consistently provided significant benefit across the divergent evolutionary species tested, with full restoration of animal lifespan in C. elegans , improvement in some aspects of animal health span in C. elegans , and/or improvement in organ-level resiliency (brain death) in the setting of acute mitochondrial dysfunction in a zebrafish model of RC complex I inhibition.
+
+3) Substance
+
+Effect on mitochondrial function
+
+Corticosteroids
+
+Increase mitochondrial membrane potential, generate ROS, induce apoptosis
+
+Antiepileptics
+
+   Valproic acid
+
+Inhibit OXPHOS, induce apoptosis of microglia, sequesters carnitine
+
+   Phenytoin
+
+Inhibits mitochondrial ATPase
+
+Anesthetics
+
+   Intravenous
+
+    Barbiturates
+
+Inhibit RC complex I, reduce mt protein synthesis and ­mitochondrial function
+
+   Volatile
+
+    Halothane
+
+Inhibits RC complex I
+
+    Isoflurane
+
+Inhibits RC complex I
+
+    Sevoflurane
+
+Inhibits the RC electron transport
+
+Local anesthetics
+
+   Bupivacain
+
+Inhibits RC complex I
+
+   Articain Lipid-lowering drugs    Fibrates    Statines Antidiabetics    Biguanides    Thiazolidinediones Antiarrhythmics    Amiodarone     β-blockers
+Neuroleptics    Haloperidol    Chlorpromazine    Quetiapine    Risperidone
+
+Inhibits RC complex I
+Inhibits RC complex I Reduce coenzyme Q10, inhibit RC complex I
+Inhibit RC complex I, cause lactacidosis Inhibit RC complex I
+Inhibits beta-oxidation Inhibition of ATPase and stage-3-respiration Inhibit RC complex I
+Inhibits RC complex I Inhibits RC complex I Inhibits RC complex I Inhibits RC complex I, induces psychosis
+
+Antibiotics
+
+   Chloramphenicol
+
+Inhibits RC complex I, reduces mt protein synthesis and m­ itochondrial functions
+
+   Tetracyclines
+
+Inhibit β-oxidation
+
+Nucleoside reverse transcriptase inhibitors
+
+   Zidovudine
+
+MtDNA depletion, reduces RC complexes I, IV activity; induces oxidative stress, apoptosis, impairs bioenergetics
+
+Chemotherapeutics
+
+   Carboplatin
+
+MtDNA mutations
+
+   Doxorubicin
+
+MtDNA mutations
+
+   Ifosamide
+
+MtDNA mutations
+
+   Interferon
+
+Impairs mtDNA transcription
+
+Others
+
+   Acetyl-salicylic-acid Inhibits RC electron transport
+
+   Dichloracetate
+
+ROS, reactive oxygen species; Mt, mitochondrial; articain; RC, respiratory chain.",1) Testosterone-enhanced renal SMP30 expression is associated with PMCA4 expression and contribution to urinary calcium level.,Database: biogrid,"1) The introduction of oncogenic H-Ras also caused a decrease in mitochondrial biogenesis, lowering the levels of expression of genes encoding for mitochondrial components, such as CYCS (encoding for cytochrome c) or ATP5E (encoding the ε subunit of ATP synthase).",19839725; 29526616,27553527,30639242; 30442766; 30194290,21802503
+NME6,PCNA,CUL7,RPS9,RPS9,DecreaseAmount,Complex,Complex,DecreaseAmount,0.4738574987008168,0.8302066725941236,0.8302066725941236,0.4738574987008168,1,1,1,1,0.1482032,1.0993900705304408e-06,1) NME6 Overexpression Reduces Levels of PCNA Proliferation Marker and Moderately Affects MAPK/ERK Pathway Activity.,Database: biogrid,Database: biogrid,1) This phenomenon is clearly demonstrated by the fact that exogenous expression of RPS9 in human osteosarcoma cell lines completely abolishes endogenous RPS9 expression [26] .,39273527,24711643,24711643,18715690
+NT5C3B,NXF1,RANBP2,AR,NT5C3B,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.8671667178196417,0.3715222573296911,0.6301266297471854,1,10,1,1,-1.7697823,2.2988824733413582e-05,Database: biogrid,"1) RanBP2 has binding capacity with Nup88, Nup214, RanGAP, RanGTP, RanGDP, and Nxf1-Nxt1.
+
+2) The interaction of NXF1 with Nup358 requires Dbp5 activity.
+
+3) Since most NXF1 localizes to the cytoplasmic side, we focused on the NXF1–Nup358 interaction.
+
+4) The loss of the interaction between NXF1 and Nup358 under the Dbp5-DN export block, while NXF1 is present in the whole cell, led us to postulate that the NXF1–Nup358 interaction must require the prior shuttling of NXF1 into the nucleus, followed by the exit of the mRNA and NXF1.
+
+5) To systematically compare the composition and stoichiometry of Nup foci to that of mature nuclear pore complexes at the NE, we used a collection of genomically‐encoded tags, transgenes, and antibodies against 16 Nups (including representatives of each nuclear pore subcomplex) as well as the Nup358 binding partners RanGAP and NXF1 (Fig 2A, Appendix Table S1).
+
+6) Since most NXF1 localizes to the cytoplasmic side, we focused on the NXF1–Nup358 interaction.The loss of the interaction between NXF1 and Nup358 under the Dbp5-DN export block, while NXF1 is present in the whole cell, led us to postulate that the NXF1–Nup358 interaction must require the prior shuttling of NXF1 into the nucleus, followed by the exit of the mRNA and NXF1.","1) Taken together, the data obtained in this work strongly suggest that Nup358 promotes a fine-tuned control of sodium conductance in the AIS.",Database: biopax,22658674,26344197; 37254647; 16314397; 10668806; 31375530; 25802992,37763196,
+NUDT18,BCL2L1,MCL1,FGFR4,NSDHL,DecreaseAmount,Complex,Inhibition,IncreaseAmount,0.4738574987008168,0.8444287068977416,0.4410755819620935,0.4844526880351076,1,287,2,1,-1.478135,0.0381666602775316,"1) Our results demonstrated that MTH-3 promoted the protein levels of DR5, and FADD and downregulated the levels of Bcl-2 and Bcl-xL in MDA-MB-231 cells.","1) KPT-330 and A-1331852 combination disrupted bindings of Mcl-1 and Bcl-xL to Bax, Bak, and/or Bim, elicited mitochondrial outer membrane permeabilization, and triggered apoptosis.
+
+2) We designed a BH3 α-helical mimetic BH3-M6 that binds to Bcl-X(L) and Mcl-1 and prevents their binding to fluorescently labeled Bak- or Bim-BH3 peptides in vitro.
+
+3) JY-1-106 disrupts interactions between both BCL-x L and MCL-1 with BAK1, leading to apoptosis through the mitochondrial pathway in human cancer cells, sensitizes tumor cells to conventional chemotherapeutic agents and inhibits tumor growth in a xenograft model of lung cancer [XREF_BIBR].
+
+4) Crystal structures of α/β-peptides bound to Bcl-x L or Mcl-1.
+
+5) Interacting with Bcl-xl and Mcl-1, Bim initiates cytochrome c release from mitochondria, activates Caspase 9 and consequently triggers mitochondrial apoptotic pathway [ xref ].
+
+6) In addition, ASF/SF2 directly binds Bcl-x and Mcl1 mRNAs, and its enforced expression attenuated the effect of AURKA inhibition on Bcl-x splicing ( xref ).
+
+7) The intrinsically disordered N-terminal transcriptional activation domain of p53 has also been shown to weakly interact with the BC groove of BCL-xL [ xref , xref ] and MCL-1 in a non-canonical fashion.
+
+8) The novel BH3 alpha-helix mimetic JY-1-106 induces apoptosis in a subset of cancer cells (lung cancer, colon cancer and mesothelioma) by disrupting Bcl-xL and Mcl-1 protein protein interactions with Bak.
+
+9) To evaluate this possibility, we first determined whether JY-1-106 disrupts the binding of Bcl-xL and Mcl-1 to Bak in vitro using fluorescence polarization (FP) assays [XREF_BIBR].
+
+10) In this report, we characterize the novel alpha-helix mimetic JY-1-106 that disrupts the interactions between both Bcl-xL and Mcl-1 with Bak, which leads to apoptosis through the mitochondrial pathway in human cancer cells.
+
+11) In response to death stimuli, certain BH3-only proteins, the so-called sensitizers, displace activators that include Bid and Bim from their inhibitory associations with Bcl-xL or Mcl-1.
+
+12) The control compound JY-1-106a makes few favorable contacts leading to increased fluctuations of the binding regions of both Bcl-xL and Mcl-1, confirming that the side chains attached to the trisarylamide scaffold are required for interaction with Bcl-xL and Mcl-1.
+
+13) Our current results suggest that the abilities of JY-1-106 to bind both Mcl-1 and Bcl-xL contribute to Bax activation in these cancer cells.
+
+14) Since their BH3 domains have much higher affinities to Bcl-xL/Bcl-2 or Mcl-1, elevated PUMA and Bim levels can bind in an inhibitory manner to Bcl-xL and Mcl-1.
+
+15) Previous articles have shown that upregulation of Mcl-1 is associated with resistance to the Bcl-xL inhibitor, ABT-737, but this phenomenon was abrogated by cotreatment with sorafenib or Mek inhibitors ( xref , xref ).
+
+16) It has been reported that activator BH3-only proteins can bind both Bcl-xL and Mcl-1, and activator BH3-only proteins that were freed from Bcl-xL and Mcl-1 can directly activate Bax [ xref ].
+
+17) Bad binds strongly to Bcl-2, Bcl-X L and Bcl-w; whereas, Noxa binds exclusively to Mcl-1 and Bfl-1/A1.
+
+18) Interactions between anti-apoptotic proteins BCL-2, BCL-X L, and MCL-1 and pro apoptotic proteins BIM and NOXA were studied by BiFC.
+
+19) In addition to the interaction between BCL2L1 and MCL1, synthetic lethality between BCL2L1 and BCL2L2 (Bcl-w) was detected in Meljuso, OVCAR8, and A375 at an FDR < 0.01, HT29 (0.03) and A549 (0.31).
+
+20) Thus, small molecules confirmed the synthetic lethal interaction between MCL1 and BCL2L1.","1) This MCL-1 induction was prevented when H3B-6527 was added to the supernatant to prevent FGFR4 activation ( Figures 5 G and S7 H).
+
+2) The near complete inhibition of MCL-1 induction by blocking FGFR4 in HCT116 cells ( Figure 5 G) suggests that FGFR4 is important, but may not be unique.","1) Thus, expression of Tm7sf2, Idi1, Nsdhl, Cyp51, and Msmo1 were upregulated by FGFR4 KD.",29138806,20705336; 28838268; 22357666; 25169932; 25012639; 19542438; 27903966; 25088254; 25788265; 24503222,35172148,36586437
+NUFIP2,UPF1,DPF2,YY1,NUFIP2,Complex,Inhibition,Complex,DecreaseAmount,0.8302066725941236,0.4357402620936744,0.4261616001712757,0.6301266297471854,1,1,1,1,-1.8223889,1.3969498598107283e-09,Database: biogrid,"1) In these experiments, siRNA mediated knockdown of either UPF1 or STAU1 upregulated endogenous REQ mRNA by ~ 1.5- and 2-fold, respectively.","1) EBNALP inactivation also increases enhancer–promoter interactions at the CASP1 and BCL2L11 loci, along with elevated DPF2 and YY1 binding and DNA accessibility.",Database: biopax,29395067,24799437,39747661,
+NUFIP2,UPF1,DPF2,TEAD1,SH3BGRL3,Complex,Inhibition,Complex,DecreaseAmount,0.8302066725941236,0.4357402620936744,0.8302066725941236,0.6301266297471854,1,1,1,1,-0.25887752,2.0605355308774586e-07,Database: biogrid,"1) In these experiments, siRNA mediated knockdown of either UPF1 or STAU1 upregulated endogenous REQ mRNA by ~ 1.5- and 2-fold, respectively.",Database: biogrid,Database: biopax,29395067,24799437,35140242,
+PAK2,REPS2,RELA,E2F1,NOP10,Phosphorylation,Complex,Inhibition,DecreaseAmount,0.5321639605290098,0.4261616001712757,0.4357402620936744,0.6301266297471854,1,1,1,1,-0.5088216,0.000128228038756,,,,,,,,
+PDLIM7,RGS3,SMAD3,INS,PDLIM7,Complex,Complex,DecreaseAmount,IncreaseAmount,0.8329154561839106,0.4261616001712757,0.5115170801443027,0.6163664161553967,2,1,6,1,-1.5009855,5.076803745681565e-08,,,,,,,,
+ACSS2,UPF1,PAWR,THAP1,RPL7L1,Complex,DecreaseAmount,Complex,DecreaseAmount,0.942222864222542,0.4684848027297138,0.4261616001712757,0.4729549708402811,2,2,1,1,0.66262776,2.9230201055757193e-05,,,,,,,,
+PLEKHH3,RFXANK,BCL2,ELK1,HEATR6,Complex,Inhibition,Complex,DecreaseAmount,0.8302066725941236,0.4824092651701481,0.4261616001712757,0.6301266297471854,1,1,1,1,1.3053796,0.0155170264800648,,,,,,,,
+PLEKHH3,RFXANK,RFX5,AR,AP000695.2,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.4261616001712757,0.8302066725941236,0.4738574987008168,1,1,1,1,-1.2493727,0.0189115580290968,,,,,,,,
+PLEKHH3,RFXANK,RFX5,IFNG,RACK1,Complex,Complex,IncreaseAmount,IncreaseAmount,0.8302066725941236,0.4261616001712757,0.4844526880351076,0.4844526880351076,1,1,1,1,-0.13713878,0.0002008680719504,,,,,,,,
+PLPP3,RELB,BCL3,IL1B,FAM13A,Complex,Activation,IncreaseAmount,DecreaseAmount,0.4261616001712757,0.3668028661364628,0.4844526880351076,0.4850742249910675,1,2,1,3,1.3068895,0.0467053206686947,,,,,,,,
+PPP3CC,NFATC2,RFC5,TOP1,BTBD2,Dephosphorylation,Complex,Complex,DecreaseAmount,0.5800011391177637,0.8302066725941236,0.8302066725941236,0.6324007949925685,1,1,1,1,-1.611327,0.0388226270110385,,,,,,,,
+PRKAR1A,CXCL12,RGS16,TNF,NPC2,Complex,Inhibition,Activation,DecreaseAmount,0.4443350122709595,0.4357402620936744,0.3668028661364628,0.4738574987008168,1,1,2,1,-0.31339628,0.0004314626923496,,,,,,,,
+HMGCR,REN,SLC33A1,UBE2O,RPL35,Activation,DecreaseAmount,Complex,IncreaseAmount,0.3715222573296911,0.4738574987008168,0.8302066725941236,0.4844526880351076,1,1,1,1,-0.15649861,4.560190906381708e-05,,,,,,,,
+PROX1,RELN,MECP2,SMC5,SLF2,DecreaseAmount,Complex,Complex,IncreaseAmount,0.4738574987008168,0.4261616001712757,0.8302066725941236,0.4844526880351076,1,1,1,1,-1.2868301,0.0380072320923242,,,,,,,,
+PVT1,UPF1,DPF2,CEBPA,LGALS1,Complex,Inhibition,Complex,IncreaseAmount,0.4073065404350923,0.4357402620936744,0.8302066725941236,0.4844526880351076,4,1,1,1,-0.20831463,4.0855045422974384e-11,,,,,,,,
+PVT1,UPF1,DPF2,PAX9,RPS9,Complex,Inhibition,Complex,IncreaseAmount,0.4073065404350923,0.4357402620936744,0.8302066725941236,0.4844526880351076,4,1,1,1,0.12467482,1.799481392726915e-05,,,,,,,,
+PVT1,UPF1,RBFOX2,HSF2,ALG3,Complex,Activation,DecreaseAmount,IncreaseAmount,0.4073065404350923,0.3715222573296911,0.4738574987008168,0.4844526880351076,4,1,1,1,0.8604124,0.0004017457476184,,,,,,,,
+RASIP1,BCL2L1,MCL1,PIWIL2,SERPINE1,DecreaseAmount,Complex,Activation,DecreaseAmount,0.4738574987008168,0.8444287068977416,0.3715222573296911,0.4738574987008168,1,287,1,1,-0.43553644,3.51416255056377e-05,,,,,,,,
+REPIN1,RGS12,RGS14,PITX2,RBPMS,DecreaseAmount,Complex,Complex,DecreaseAmount,0.6301266297471854,0.4261616001712757,0.4261616001712757,0.6309317981560123,1,1,1,2,-0.6700263,0.0001765370044042,,,,,,,,
+RAB3A,RBBP8,BCL2,FOXO4,ATP5MF,Complex,IncreaseAmount,Complex,DecreaseAmount,0.4107601645819881,0.4844526880351076,0.4093559461733533,0.6301266297471854,3,1,4,1,-0.4176326,0.0003908362460077,,,,,,,,
+SEC11C,MYC,RGS3,CNKSR2,CEP192,Complex,Complex,Complex,IncreaseAmount,0.4261616001712757,0.4261616001712757,0.6835099360940164,0.4844526880351076,1,1,1,1,1.2492535,0.0372478965490513,,,,,,,,
+SEC11C,MYC,RGN,DAB2IP,SRP9,Complex,Complex,Activation,DecreaseAmount,0.4261616001712757,0.4073065404350923,0.3663871154342217,0.5034580088219961,1,4,3,4,0.45163214,0.0003665821905362,,,,,,,,
+SEC61A2,RAF1,IL6,PPARGC1A,ACAT2,Complex,IncreaseAmount,Complex,IncreaseAmount,0.8302066725941236,0.504176544902569,0.4244737435129522,0.6163664161553967,1,5,2,1,-0.76058155,3.699150781984751e-05,,,,,,,,
+SFT2D3,RABAC1,RET,NKX2-1,UCK2,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.3715222573296911,0.6301266297471854,1,1,1,1,-1.3601924,0.0436795922482046,,,,,,,,
+SFT2D3,RABAC1,RGS2,PGF,CYLD,Complex,Complex,Inhibition,IncreaseAmount,0.8302066725941236,0.8302066725941236,0.4357402620936744,0.4844526880351076,1,1,1,1,-1.2750988,0.0481934897635983,,,,,,,,
+SFT2D3,RABAC1,RGS2,STAT5B,A1BG,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.4244737435129522,0.6301266297471854,1,1,2,1,-0.6357956,0.0004205067031548,,,,,,,,
+SHISA4,PDCD6,KIF14,NF1,QRSL1,Complex,Complex,Complex,DecreaseAmount,0.8329154561839106,0.8302066725941236,0.8302066725941236,0.6301266297471854,2,1,1,1,-2.143098,0.0452642246234925,,,,,,,,
+SHISA4,PDCD6,RIGI,ELK1,FAM104A,Complex,Complex,Inhibition,DecreaseAmount,0.8329154561839106,0.8302066725941236,0.4357402620936744,0.6301266297471854,2,1,1,1,-1.4515464,0.0095217892742232,,,,,,,,
+SHISA4,PDCD6,TNIP2,JUN,COMMD10,Complex,Complex,Complex,DecreaseAmount,0.8329154561839106,0.8302066725941236,0.4261616001712757,0.6301266297471854,2,1,1,1,-1.300326,0.0081173264980819,,,,,,,,
+SHISA4,PDCD6,KIF14,SUZ12,AEBP2,Complex,Complex,Complex,DecreaseAmount,0.8329154561839106,0.8302066725941236,0.8302066725941236,0.4729549708402811,2,1,1,1,-1.2860969,0.0286642126370029,,,,,,,,
+SLC22A4,RGN,SIGMAR1,SOD1,COPB2,Activation,Complex,IncreaseAmount,IncreaseAmount,0.3715222573296911,0.4261616001712757,0.4715315630410047,0.4844526880351076,1,1,2,1,-0.7506113,0.0004306136131699,,,,,,,,
+SLC2A11,PLK1,OPN1MW,BDNF,NENF,IncreaseAmount,Complex,Complex,DecreaseAmount,0.4844526880351076,0.4111657003835089,0.528750241156915,0.4738574987008168,1,2,3,1,-0.59684753,0.0002462081519836,,,,,,,,
+SLC2A6,RELA,REL,CD28,SRRT,Complex,Complex,Complex,IncreaseAmount,0.4244737435129522,0.4321616952089651,0.712360506871101,0.4844526880351076,2,6,11,1,-1.362378,0.0377365913262231,,,,,,,,
+SLC2A6,RELA,REL,MYC,CD164,Complex,Complex,IncreaseAmount,DecreaseAmount,0.4244737435129522,0.4321616952089651,0.4922809406747177,0.6309317981560123,2,6,5,2,-0.53886825,0.00017282481232,,,,,,,,
+SMARCB1,TRIM27,RET,TP53,LTBP1,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.6301266297471854,1,30,1,1,-0.30595252,0.0004274357283142,,,,,,,,
+GSS,BCL2,BCL2L1,MIR608,C19orf53,Activation,Complex,DecreaseAmount,DecreaseAmount,0.3715222573296911,0.4261616001712757,0.6324007949925685,0.6309317981560123,1,1,1,2,0.40453184,0.0001843476224666,,,,,,,,
+SVIL,RELA,REL,PTGS2,ADIPOR2,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.4321616952089651,0.4244737435129522,0.4844526880351076,1,6,2,1,-1.3547571,0.0163303739109213,,,,,,,,
+SVIL,RELA,REL,LEF1,SVIL,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.4321616952089651,0.4261616001712757,0.6301266297471854,1,6,1,1,-1.2605519,1.7149265965389014e-06,,,,,,,,
+TAOK1,RELA,REL,PPARA,TAOK1,Phosphorylation,Complex,Complex,DecreaseAmount,0.565177305878659,0.4321616952089651,0.4261616001712757,0.6301266297471854,1,6,1,1,-0.98339784,8.866243912576169e-05,,,,,,,,
+TIMM9,MOK,REST,SERPINF2,MT-ATP6,Activation,Complex,Activation,IncreaseAmount,0.3715222573296911,0.8302066725941236,0.3715222573296911,0.4844526880351076,1,1,1,1,-0.40119484,2.2870557838010466e-08,,,,,,,,
+TMEM167B,ASPH,RCN2,ELK1,SLC35F6,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.8302066725941236,0.6301266297471854,1,1,1,1,-1.7772907,0.0405346154948966,,,,,,,,
+STK38,RELA,BCL2L1,PAX4,CYBC1,Phosphorylation,Complex,IncreaseAmount,DecreaseAmount,0.565177305878659,0.4244737435129522,0.4844526880351076,0.6301266297471854,1,1,1,1,-1.7675139,0.0481876997052302,,,,,,,,
+TNFSF10,RBX1,TRIM27,MYOD1,SERF2,Activation,Complex,DecreaseAmount,DecreaseAmount,0.3715222573296911,0.8302066725941236,0.4738574987008168,0.6301266297471854,1,1,1,1,-0.15651818,0.0002178351943333,,,,,,,,
+TRIP12,RFXANK,BCL2,NFATC1,TMEM64,Complex,Inhibition,Inhibition,IncreaseAmount,0.8302066725941236,0.4824092651701481,0.4357402620936744,0.4844526880351076,1,1,1,1,-1.3747598,0.0484854275007871,,,,,,,,
+TRIP12,RFXANK,BCL2,NMT1,NMT2,Complex,Inhibition,Inhibition,IncreaseAmount,0.8302066725941236,0.4824092651701481,0.4357402620936744,0.4844526880351076,1,1,1,1,-0.79001737,4.3190761319692714e-06,,,,,,,,
+TRIP12,RFXANK,RECQL4,RPL22,RPL22L1,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.8302066725941236,0.4738574987008168,1,1,1,1,-0.3431666,3.222644234950655e-05,,,,,,,,
+TTC32,BAG3,TRIM27,PPARG,KLF6,Complex,Complex,Inhibition,IncreaseAmount,0.8302066725941236,0.8302066725941236,0.497172507174369,0.4844526880351076,1,1,5,1,-0.7835853,0.0002384695679751,,,,,,,,
+TTLL11,RECQL4,RFXANK,IL6,RC3H1,Complex,Complex,Activation,IncreaseAmount,0.8302066725941236,0.8302066725941236,0.3715222573296911,0.4844526880351076,1,1,1,1,-1.8723841,0.0097411074519017,,,,,,,,
+TTLL11,RECQL4,RFC5,RB1,PPIG,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.8302066725941236,0.8329154561839106,0.4844526880351076,1,1,2,1,-0.6517511,0.0002283614340727,,,,,,,,
+TTLL11,RECQL4,RFC5,MYC,MYL12A,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.8329154561839106,0.6301266297471854,1,1,2,1,-0.20823532,0.0003922126186666,,,,,,,,
+UBA5,RBBP7,REST,NRF1,LSM1,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.8302066725941236,0.4261616001712757,0.6301266297471854,1,1,1,1,-0.65042084,0.0002411828597943,,,,,,,,
+USP25,RELA,REL,MAP2K6,NDUFB11,Activation,Complex,Activation,DecreaseAmount,0.3715222573296911,0.4321616952089651,0.3715222573296911,0.4729549708402811,1,6,1,1,-0.4635,0.0002619899859493,,,,,,,,
+XPO7,TRIM27,RET,TP53,UBE2C,Complex,Complex,IncreaseAmount,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.4715315630410047,1,30,1,2,1.7953829,0.0062867217350243,,,,,,,,
+XPO7,TRIM27,RET,CYGB,TOP2A,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.4244737435129522,0.4583769289308221,1,30,2,1,1.7889636,0.0053932340957868,,,,,,,,
+XPO7,TRIM27,RELA,MCL1,FAM83D,Complex,Inhibition,IncreaseAmount,DecreaseAmount,0.8302066725941236,0.4357402620936744,0.4844526880351076,0.4738574987008168,1,1,1,1,1.7316334,0.0309858979489278,,,,,,,,
+XPO7,TRIM27,RET,FBXO7,DLGAP5,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.8302066725941236,0.546949795795761,1,30,1,1,1.7163911,0.0001644569326731,,,,,,,,
+XPO7,TRIM27,RET,TP53,CENPE,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.4738574987008168,1,30,1,1,1.7126687,0.0240524517247442,,,,,,,,
+XPO7,TRIM27,RET,YAP1,CCNA2,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.4443350122709595,0.545553245403983,1,30,1,2,1.6257229,0.0386072540047215,,,,,,,,
+XPO7,TRIM27,RET,TP53,PRC1,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.4738574987008168,1,30,1,1,1.5607872,0.0001985240273355,,,,,,,,
+XPO7,TRIM27,RET,TP53,CENPF,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.4738574987008168,1,30,1,1,1.5512686,0.0048733274712871,,,,,,,,
+XPO7,TRIM27,RET,PTEN,KIF11,Complex,Complex,Complex,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.4261616001712757,0.4738574987008168,1,30,1,1,1.5005555,0.0314368659990758,,,,,,,,
+XPO7,TRIM27,RET,TP53,GTSE1,Complex,Complex,IncreaseAmount,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.4715315630410047,1,30,1,1,1.4824659,0.0371006390662404,,,,,,,,
+XPO7,TRIM27,RET,SP1,KIF20B,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.3715222573296911,0.6301266297471854,1,30,1,1,1.4073141,0.0111089728335921,,,,,,,,
+XPO7,TRIM27,RET,SP1,GNA12,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.3715222573296911,0.6301266297471854,1,30,1,1,-1.3804524,0.038595988990445,,,,,,,,
+XPO7,TRIM27,RET,TP53,CENPK,Complex,Complex,IncreaseAmount,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.4844526880351076,1,30,1,1,1.3794352,0.0041254704127721,,,,,,,,
+XPO7,TRIM27,RET,SP1,NUSAP1,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.3715222573296911,0.6301266297471854,1,30,1,1,1.2991619,0.0099794441887685,,,,,,,,
+XPO7,TRIM27,RET,YAP1,TAGLN,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.4443350122709595,0.5028536023408147,1,30,1,3,-1.2925625,0.039747953781872,,,,,,,,
+XPO7,TRIM27,RELA,NR3C1,C19orf48,Complex,Inhibition,Complex,DecreaseAmount,0.8302066725941236,0.4357402620936744,0.4244737435129522,0.6301266297471854,1,1,1,1,1.248342,0.00069428935225,,,,,,,,
+XPO7,TRIM27,RET,TP53,RPS27L,Complex,Complex,IncreaseAmount,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.4844526880351076,1,30,1,1,-0.349045,1.680474496060589e-05,,,,,,,,
+XPO7,TRIM27,RET,TP53,NEAT1,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.6329669864572899,1,30,1,2,-0.5157702,2.156936377763793e-05,,,,,,,,
+XPO7,TRIM27,RET,STAT3,H2AFV,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.3715222573296911,0.4738574987008168,1,30,1,1,0.5981362,0.0001011000017987,,,,,,,,
+XPO7,TRIM27,RET,IL1B,TUBA1B,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.3748629023279588,0.4738574987008168,1,30,4,1,0.5434115,0.0001049625180885,,,,,,,,
+XPO7,TRIM27,RET,SRY,PCLAF,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.8302066725941236,0.4844526880351076,1,30,1,1,1.0725397,0.0001215372473964,,,,,,,,
+XPO7,TRIM27,RET,YAP1,PSAT1,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.4443350122709595,0.4848522412157821,1,30,1,9,0.71963316,0.000168814368032,,,,,,,,
+XPO7,TRIM27,RET,TP53,PTMA,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.4844526880351076,0.4738574987008168,1,30,1,1,0.17862771,0.0001791793202228,,,,,,,,
+XPO7,TRIM27,RET,CHMP4B,UBE2S,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.4117976602725213,0.8302066725941236,0.4844526880351076,1,30,1,1,0.8516654,0.0002569089051882,,,,,,,,
+XPO7,TRIM27,RET,SP1,TUBA1C,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.3715222573296911,0.6301266297471854,1,30,1,1,0.5709213,0.0003850101832969,,,,,,,,
+XPO7,TRIM27,RET,SP1,PSMC5,Complex,Complex,Activation,DecreaseAmount,0.8302066725941236,0.4117976602725213,0.3715222573296911,0.6301266297471854,1,30,1,1,0.52378106,0.0003942303892404,,,,,,,,
+YLPM1,B9D2,QARS1,MYC,REX1BD,Complex,Complex,Complex,IncreaseAmount,0.8302066725941236,0.8302066725941236,0.8216256011114469,0.4844526880351076,1,1,3,1,0.5746948,0.0002517628207072,,,,,,,,
+ZDHHC18,UPF1,DPF2,PPARG,SLC39A4,Complex,Inhibition,Complex,DecreaseAmount,0.8302066725941236,0.4357402620936744,0.8302066725941236,0.4738574987008168,1,1,1,1,-1.2861389,0.0026936773376091,,,,,,,,
+ZDHHC18,UPF1,DPF2,MAZ,MAP2K2,Complex,Inhibition,Complex,IncreaseAmount,0.8302066725941236,0.4357402620936744,0.8302066725941236,0.4715315630410047,1,1,1,2,-0.574207,0.0002674203950796,,,,,,,,
+ZNF281,RELA,REL,MYC,ZNF281,Complex,Complex,IncreaseAmount,IncreaseAmount,0.8302066725941236,0.4321616952089651,0.4922809406747177,0.4844526880351076,1,6,5,1,-1.394579,0.0084558370192233,,,,,,,,
+ZNF324B,RGS3,SMAD3,ELK1,AAGAB,Complex,Complex,Complex,DecreaseAmount,0.8329154561839106,0.4261616001712757,0.7036433258099775,0.6301266297471854,2,1,10,1,-1.4791291,0.0315407498714927,,,,,,,,
+ZNF764,TRIM27,RET,TP53,SRSF3,Complex,Complex,IncreaseAmount,DecreaseAmount,0.8329154561839106,0.4117976602725213,0.4844526880351076,0.4738574987008168,2,30,1,1,-0.6837725,5.3620759831968115e-05,,,,,,,,
+ZNF774,RBM11,PCYT1A,DKK1,ENY2,Complex,Complex,Inhibition,IncreaseAmount,0.8302066725941236,0.8302066725941236,0.4357402620936744,0.4844526880351076,1,1,1,1,0.34995297,0.0002780261376167,,,,,,,,
+ZNF827,RBBP7,REST,PTGS2,FTH1,Complex,Complex,IncreaseAmount,IncreaseAmount,0.8216256011114469,0.8302066725941236,0.4844526880351076,0.4844526880351076,3,1,1,1,-0.2120373,3.1286624190613074e-05,,,,,,,,
