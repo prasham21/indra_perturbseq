@@ -1,20 +1,19 @@
+"""Legacy script: HTML assembler for GWAS endothelial INDRA statements."""
+from __future__ import annotations
+
+import argparse
+
 import pandas as pd
+from indra.assemblers.html.assembler import HtmlAssembler
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra_cogex.client.queries import get_statements
-from indra.assemblers.html.assembler import HtmlAssembler
+
+import logging
 
 
-# =========================================================
-# CONFIGURATION
-# =========================================================
-INPUT_CSV = "/Users/prashammarfatia/Downloads/gwas_endothelial_paths.csv"
-OUTPUT_CSV = "/Users/prashammarfatia/Downloads/gwas_endothelial_paths_url_enriched.csv"
-OUTPUT_HTML = "/Users/prashammarfatia/Downloads/gwas_endothelial_paths_statements.html"
+logger = logging.getLogger(__name__)
 
 
-# =========================================================
-# MATCH STATEMENT BASED ON BELIEF + EVIDENCE COUNT
-# =========================================================
 def find_matching_statement(stmts, target_belief, target_evcnt):
     """
     Identify the statement from INDRA that best matches the CSV info.
@@ -47,22 +46,24 @@ def find_matching_statement(stmts, target_belief, target_evcnt):
     return best_match
 
 
-# =========================================================
-# MAIN WORKFLOW
-# =========================================================
 def main():
-    print(" Loading CSV...")
-    df = pd.read_csv(INPUT_CSV)
+    ap = argparse.ArgumentParser(description="Generate INDRA HTML evidence report.")
+    ap.add_argument("--input", required=True, help="Input CSV with GWAS endothelial paths.")
+    ap.add_argument("--output-csv", required=True, help="Enriched output CSV with INDRA URLs.")
+    ap.add_argument("--output-html", required=True, help="Output HTML report path.")
+    args = ap.parse_args()
+
+    logger.info("Loading CSV: %s", args.input)
+    df = pd.read_csv(args.input)
 
     client = Neo4jClient()
 
     hop1_hashes, hop1_urls = [], []
     hop2_hashes, hop2_urls = [], []
 
-    # Will store statements exactly in CSV order
     all_statements_for_html = []
 
-    print(" Processing rows...")
+    logger.info("Processing rows...")
     for idx, row in df.iterrows():
 
         src = row["source"]
@@ -78,9 +79,7 @@ def main():
         evcnt1 = int(row["evidence_1"])
         evcnt2 = int(row["evidence_2"])
 
-        # -----------------------------------------------------
         # HOP 1: source → intermediate
-        # -----------------------------------------------------
         hop1_stmts = get_statements(
             agent=src,
             other_agent=mid,
@@ -100,9 +99,7 @@ def main():
             hop1_hashes.append("")
             hop1_urls.append("")
 
-        # -----------------------------------------------------
         # HOP 2: intermediate → target
-        # -----------------------------------------------------
         hop2_stmts = get_statements(
             agent=mid,
             other_agent=tgt,
@@ -123,25 +120,18 @@ def main():
             hop2_urls.append("")
 
         if idx % 25 == 0:
-            print(f"   Processed {idx}/{len(df)} rows...")
+            logger.info("Processed %d/%d rows...", idx, len(df))
 
-    # =========================================================
-    # ADD NEW COLUMNS TO CSV
-    # =========================================================
     df["hop1_hash"] = hop1_hashes
     df["hop1_indra_url"] = hop1_urls
     df["hop2_hash"] = hop2_hashes
     df["hop2_indra_url"] = hop2_urls
 
-    print(f" Saving enriched CSV → {OUTPUT_CSV}")
-    df.to_csv(OUTPUT_CSV, index=False)
+    logger.info("Saving enriched CSV: %s", args.output_csv)
+    df.to_csv(args.output_csv, index=False)
 
-    # =========================================================
-    # GENERATE HTML PAGE — IN EXACT CSV ORDER
-    # =========================================================
-    print(" Generating HtmlAssembler report...")
+    logger.info("Generating HtmlAssembler report...")
 
-    # Deduplicate while preserving original order
     uniq = []
     seen = set()
     for s in all_statements_for_html:
@@ -150,16 +140,15 @@ def main():
             uniq.append(s)
             seen.add(h)
 
-    # HtmlAssembler with statement-level (NO grouping or sorting)
     ha = HtmlAssembler(
         statements=uniq,
         title="GWAS 2-Hop INDRA Evidence",
     )
 
-    ha.make_model(grouping_level="statement")  # <<< KEY FIX
-    ha.save_model(OUTPUT_HTML)
+    ha.make_model(grouping_level="statement")
+    ha.save_model(args.output_html)
 
-    print(f" Done! HTML saved to → {OUTPUT_HTML}")
+    logger.info("Done! HTML saved to %s", args.output_html)
 
 
 if __name__ == "__main__":

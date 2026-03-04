@@ -1,9 +1,18 @@
+"""Legacy script: ROC curve creation for 2-hop INDRA validation."""
+from __future__ import annotations
+
+import argparse
 import glob
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 plt.rcParams.update({
     "figure.figsize": (6, 5),
     "axes.spines.top": False,
@@ -21,84 +30,53 @@ plt.rcParams.update({
     "savefig.dpi": 300,
 })
 
-# =========================
-# 0. PATHS + CONSTANTS
-# =========================
-
-# Adjust these paths if needed
-ENDO_PATH = "/Users/prashammarfatia/Downloads/endothelial_present_plus_manual.csv"
-DEG_GLOB = "/Users/prashammarfatia/Downloads/de_results_per_gene/*_vs_control.csv"
-
-# 2-hop INDRA file (DEDUP, one row per source-target)
-INDRA_2HOP_PATH = "/Users/prashammarfatia/Downloads/indra_2hop_all_perturbations_DEDUP_same_columns.csv"
-
-TARGET_VALIDATION_PATH = "/Users/prashammarfatia/Downloads/target_validation_expanded.csv"
-
-# Number of cumulative quantile bins for ROC #1 and ROC #2
 N_BINS = 20
 
-# Fixed raw p-value thresholds for ROC #3
 FIXED_P_THRESHOLDS = np.array([0.5, 0.2, 0.1, 0.05, 0.02,
                                0.01, 0.005, 0.001, 0.0005, 0.0001])
 
-# INDRA column names for the 2-hop file
 INDRA_SOURCE_COL = "source"
 INDRA_TARGET_COL = "target"
 
-# target_validation_expanded column names
 TV_SOURCE_COL = "Gene"
-TV_FLAG_COL = "Karen_Flag"
+FILTER_COLUMN = "analysis_flag"
 TV_FLAG_KEEP = "Use_for_analysis"
 
 
-# =========================
-# 1. BUILD DATA MATRIX (USING TARGET_VALIDATION)
-# =========================
 def extract_source_name_from_deg_path(path: str) -> str:
     """From '<SOURCE>_vs_control.csv' -> 'SOURCE'."""
     base = os.path.basename(path)
     return base.replace("_vs_control.csv", "")
 
 
-def get_karen_sources(tv_path: str) -> list[str]:
-    """Return Karen-approved perturbation genes."""
-    tv_df = pd.read_csv(tv_path)
+def get_filtered_sources(target_validation_path: str) -> list[str]:
+    """Return approved perturbation genes."""
+    tv_df = pd.read_csv(target_validation_path)
 
     if TV_SOURCE_COL not in tv_df.columns:
         raise ValueError(
-            f"TV_SOURCE_COL='{TV_SOURCE_COL}' not found in {tv_path}. "
+            f"TV_SOURCE_COL='{TV_SOURCE_COL}' not found in {target_validation_path}. "
             f"Available columns: {tv_df.columns.tolist()}"
         )
-    if TV_FLAG_COL not in tv_df.columns:
+    if FILTER_COLUMN not in tv_df.columns:
         raise ValueError(
-            f"TV_FLAG_COL='{TV_FLAG_COL}' not found in {tv_path}. "
+            f"FILTER_COLUMN='{FILTER_COLUMN}' not found in {target_validation_path}. "
             f"Available columns: {tv_df.columns.tolist()}"
         )
 
-    keep_df = tv_df[tv_df[TV_FLAG_COL] == TV_FLAG_KEEP].copy()
+    keep_df = tv_df[tv_df[FILTER_COLUMN] == TV_FLAG_KEEP].copy()
     sources = keep_df[TV_SOURCE_COL].astype(str).tolist()
     sources_unique = list(dict.fromkeys(sources))  # preserve order, drop dups
 
-    print(f"From target_validation_expanded: {len(sources_unique)} sources with {TV_FLAG_COL} == '{TV_FLAG_KEEP}'")
+    logger.info("From target_validation_expanded: %s sources with %s == '%s'", len(sources_unique), FILTER_COLUMN, TV_FLAG_KEEP)
     return sources_unique
 
 
 def build_data_matrix(endo_path: str,
                       deg_glob: str,
-                      tv_path: str):
-    """
-    Build:
-      - gene_list: ordered list of endothelial genes that appear in DEG files
-      - source_list: ordered list of perturbation genes selected via target_validation_expanded
-      - data_matrix: shape (n_sources, n_genes), p-values
-
-    Uses:
-      - endothelial_present_plus_manual.csv -> column 'gene'
-      - target_validation_expanded.csv -> TV_SOURCE_COL, TV_FLAG_COL
-      - DEG files -> columns 'names' (gene), 'pvals' (p-value)
-    """
-    karen_sources = get_karen_sources(tv_path)
-    karen_source_set = set(karen_sources)
+                      target_validation_path: str):
+    """Build p-value data matrix from DE result files."""
+    filtered_sources = get_filtered_sources(target_validation_path)
 
     endo_df = pd.read_csv(endo_path)
     if "gene" not in endo_df.columns:
@@ -116,20 +94,20 @@ def build_data_matrix(endo_path: str,
 
     selected_sources = []
     selected_paths = []
-    for src in karen_sources:
+    for src in filtered_sources:
         if src in source_to_path:
             selected_sources.append(src)
             selected_paths.append(source_to_path[src])
         else:
-            print(f"WARNING: Karen source '{src}' has no matching DEG file (<{src}>_vs_control.csv)")
+            logger.warning("Source '%s' has no matching DEG file (%s_vs_control.csv)", src, src)
 
     if not selected_sources:
         raise RuntimeError(
-            "No overlap between Karen-approved sources and DEG files.\n"
+            "No overlap between approved sources and DEG files.\n"
             "Check TV_SOURCE_COL and DEG filenames."
         )
 
-    print(f"Using {len(selected_sources)} sources that have both Karen_Flag and DEG files.")
+    logger.info("Using %s sources that have both analysis_flag and DEG files.", len(selected_sources))
 
     example_df = pd.read_csv(selected_paths[0])
     if "names" not in example_df.columns:
@@ -137,16 +115,16 @@ def build_data_matrix(endo_path: str,
     if "pvals" not in example_df.columns:
         raise ValueError(f"'pvals' column not found in DEG file: {selected_paths[0]}")
 
-    gene_col = "names"
+    gene_column = "names"
     pval_col = "pvals"
 
-    deg_genes_universe = set(example_df[gene_col].astype(str))
-    print(f"DEG-universe genes from example: {len(deg_genes_universe)}")
+    deg_genes_universe = set(example_df[gene_column].astype(str))
+    logger.info("DEG-universe genes from example: %d", len(deg_genes_universe))
 
     gene_list = [g for g in endo_genes if g in deg_genes_universe]
-    print(
-        f"Genes kept after intersection: {len(gene_list)} "
-        f"({len(gene_list) / len(endo_genes) * 100:.2f}% coverage)"
+    logger.info(
+        "Genes kept after intersection: %d (%.2f%% coverage)",
+        len(gene_list), len(gene_list) / len(endo_genes) * 100,
     )
 
     gene_to_idx = {g: j for j, g in enumerate(gene_list)}
@@ -154,21 +132,21 @@ def build_data_matrix(endo_path: str,
     n_sources = len(selected_sources)
     n_genes = len(gene_list)
 
-    print(f"Number of sources (Karen-approved): {n_sources}")
-    print(f"Number of genes (matrix columns): {n_genes}")
+    logger.info("Number of sources: %d", n_sources)
+    logger.info("Number of genes (matrix columns): %d", n_genes)
 
     data_matrix = np.full((n_sources, n_genes), np.nan, dtype=float)
 
     for i, (src_name, path) in enumerate(zip(selected_sources, selected_paths)):
         df = pd.read_csv(path)
 
-        if gene_col not in df.columns or pval_col not in df.columns:
+        if gene_column not in df.columns or pval_col not in df.columns:
             raise ValueError(
-                f"Expected columns '{gene_col}' and '{pval_col}' in file: {path}"
+                f"Expected columns '{gene_column}' and '{pval_col}' in file: {path}"
             )
 
-        df[gene_col] = df[gene_col].astype(str)
-        gene_to_pval = dict(zip(df[gene_col], pd.to_numeric(df[pval_col], errors="coerce")))
+        df[gene_column] = df[gene_column].astype(str)
+        gene_to_pval = dict(zip(df[gene_column], pd.to_numeric(df[pval_col], errors="coerce")))
 
         for g, j in gene_to_idx.items():
             if g in gene_to_pval:
@@ -177,9 +155,6 @@ def build_data_matrix(endo_path: str,
     return data_matrix, gene_list, selected_sources
 
 
-# =========================
-# 2. BUILD INDRA MATRIX (2-HOP)
-# =========================
 def build_indra_matrix_2hop(indra_path: str,
                             gene_list: list[str],
                             source_list: list[str]) -> np.ndarray:
@@ -201,8 +176,8 @@ def build_indra_matrix_2hop(indra_path: str,
             f"Columns: {indra_df.columns.tolist()}"
         )
 
-    print(f"Using INDRA source column: {INDRA_SOURCE_COL}")
-    print(f"Using INDRA target column: {INDRA_TARGET_COL}")
+    logger.info("Using INDRA source column: %s", INDRA_SOURCE_COL)
+    logger.info("Using INDRA target column: %s", INDRA_TARGET_COL)
 
     indra_df[INDRA_SOURCE_COL] = indra_df[INDRA_SOURCE_COL].astype(str)
     indra_df[INDRA_TARGET_COL] = indra_df[INDRA_TARGET_COL].astype(str)
@@ -214,7 +189,7 @@ def build_indra_matrix_2hop(indra_path: str,
         indra_df[INDRA_SOURCE_COL].isin(src_set)
         & indra_df[INDRA_TARGET_COL].isin(gene_set)
     ]
-    print(f"INDRA rows after restricting to our sources & genes: {len(indra_df)}")
+    logger.info("INDRA rows after restricting to our sources & genes: %s", len(indra_df))
 
     src_to_idx = {s: i for i, s in enumerate(source_list)}
     gene_to_idx = {g: j for j, g in enumerate(gene_list)}
@@ -234,9 +209,6 @@ def build_indra_matrix_2hop(indra_path: str,
     return indra_matrix
 
 
-# =========================
-# 3. CORE METRICS HELPERS
-# =========================
 def compute_tp_fp_fn_for_mask(emp_child: np.ndarray,
                               indra_child: np.ndarray):
     """
@@ -294,9 +266,6 @@ def mean_curve_over_sources(tpr_matrix: np.ndarray,
     return tpr_mean, fpr_mean
 
 
-# =========================
-# 4. ROC #1 – P-VALUE QUANTILE BINS
-# =========================
 def roc_from_pvalue_quantiles(data_matrix: np.ndarray,
                               indra_matrix: np.ndarray,
                               n_bins: int = 20):
@@ -336,9 +305,6 @@ def roc_from_pvalue_quantiles(data_matrix: np.ndarray,
     return fpr_mean, tpr_mean, fractions
 
 
-# =========================
-# 5. ROC #2 – NEG LOG P-VALUE QUANTILE BINS
-# =========================
 def roc_from_neglog_quantiles(data_matrix: np.ndarray,
                               indra_matrix: np.ndarray,
                               n_bins: int = 20):
@@ -379,9 +345,6 @@ def roc_from_neglog_quantiles(data_matrix: np.ndarray,
     return fpr_mean, tpr_mean, fractions
 
 
-# =========================
-# 6. ROC #3 – FIXED RAW P-VALUE THRESHOLDS
-# =========================
 def roc_from_fixed_p_thresholds(data_matrix: np.ndarray,
                                 indra_matrix: np.ndarray,
                                 thresholds: np.ndarray):
@@ -416,9 +379,6 @@ def roc_from_fixed_p_thresholds(data_matrix: np.ndarray,
     return fpr_mean, tpr_mean, thresholds
 
 
-# =========================
-# 7. PLOTTING HELPER
-# =========================
 def plot_roc_curve(fpr: np.ndarray,
                    tpr: np.ndarray,
                    label: str):
@@ -494,31 +454,32 @@ def export_raw_tp_fp_fn(
 
     df_out = pd.DataFrame(rows)
     df_out.to_csv(outfile, index=False)
-    print(f"\nSaved raw TP/FP/FN to: {outfile}")
+    logger.info("\nSaved raw TP/FP/FN to: %s", outfile)
 
 
-# =========================
-# 8. MAIN
-# =========================
 def main():
-    # 1) BUILD DATA MATRIX (P-values) FROM DE FILES
+    ap = argparse.ArgumentParser(description="Create ROC curves for 2-hop INDRA validation.")
+    ap.add_argument("--endo-path", required=True, help="Endothelial gene list CSV.")
+    ap.add_argument("--deg-glob", required=True, help="Glob pattern for DE result CSVs.")
+    ap.add_argument("--indra-2hop-path", required=True, help="INDRA 2-hop dedup dataset CSV.")
+    ap.add_argument("--target-validation-path", required=True, help="Target validation CSV.")
+    args = ap.parse_args()
+
     data_matrix, gene_list, source_list = build_data_matrix(
-        ENDO_PATH,
-        DEG_GLOB,
-        TARGET_VALIDATION_PATH,
+        args.endo_path,
+        args.deg_glob,
+        args.target_validation_path,
     )
 
-    # 2) BUILD INDRA MATRIX (2-hop source->target existence)
     indra_matrix = build_indra_matrix_2hop(
-        INDRA_2HOP_PATH,
+        args.indra_2hop_path,
         gene_list=gene_list,
         source_list=source_list,
     )
 
-    print("data_matrix shape:", data_matrix.shape)
-    print("indra_matrix shape:", indra_matrix.shape)
+    logger.info("data_matrix shape: %s", data_matrix.shape)
+    logger.info("indra_matrix shape: %s", indra_matrix.shape)
 
-    # 3) COMPUTE ROC CURVES
     fpr_qp, tpr_qp, _ = roc_from_pvalue_quantiles(
         data_matrix, indra_matrix, n_bins=N_BINS
     )
@@ -531,7 +492,6 @@ def main():
         data_matrix, indra_matrix, FIXED_P_THRESHOLDS
     )
 
-    # 4) EXPORT RAW TP–FP–FN DATA (fixed thresholds)
     export_raw_tp_fp_fn(
         data_matrix=data_matrix,
         indra_matrix=indra_matrix,
@@ -541,7 +501,6 @@ def main():
         outfile="raw_tp_fp_fn_2hop.csv",
     )
 
-    # 5) PLOTTING — THREE INDIVIDUAL ROC CURVES
     plt.figure()
     auc1 = plot_roc_curve(fpr_qp, tpr_qp, label="Quantile p-value thresholds (2-hop)")
     plt.plot([0, 1], [0, 1], "r--", linewidth=1.4, label="Chance")
@@ -572,7 +531,6 @@ def main():
     plt.tight_layout()
     plt.savefig("roc_2hop_fixed_p_thresholds.png")
 
-    # 6) COMBINED COMPARISON FIGURE
     plt.figure()
     plot_roc_curve(fpr_qp, tpr_qp, label="Quantile p-value thresholds (2-hop)")
     plot_roc_curve(fpr_ql, tpr_ql, label="Quantile -log10(p) thresholds (2-hop)")
@@ -587,17 +545,8 @@ def main():
 
     plt.show()
 
-    print("\nAUC summary (2-hop):")
-    print(f"  Quantile(p):                {auc1:.3f}")
-    print(f"  Quantile(-log10 p):         {auc2:.3f}")
-    print(f"  Fixed p-value thresholds:   {auc3:.3f}")
-
-    print("\nOutputs saved:")
-    print("  - raw_tp_fp_fn_2hop.csv")
-    print("  - roc_2hop_quantile_p.png")
-    print("  - roc_2hop_quantile_neglog_p.png")
-    print("  - roc_2hop_fixed_p_thresholds.png")
-    print("  - roc_2hop_all_strategies_combined.png")
+    logger.info("AUC summary (2-hop): Quantile(p)=%.3f, Quantile(-log10p)=%.3f, Fixed=%.3f",
+                auc1, auc2, auc3)
 
 
 if __name__ == "__main__":

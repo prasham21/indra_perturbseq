@@ -1,37 +1,36 @@
+"""Legacy script: comprehensive MeSH term extraction and family expansion."""
+from __future__ import annotations
+
+import argparse
 import time
+from typing import Dict, Iterable, List, Optional, Set, Tuple
+
 import pandas as pd
-from typing import Iterable, List, Tuple, Set, Dict, Optional
+from indra_cogex.client import get_mesh_ids_for_pmids
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra_cogex.representation import norm_id
-from indra_cogex.client import get_mesh_ids_for_pmids
+
+import logging
 
 
-# =========================
-# CONFIG
-# =========================
-OUTPUT_FILE = "/Users/prashammarfatia/Downloads/comprehensive_mesh_list_with_origin.csv"
-PAPER_PMID = "38326615"  # Convergence of CAD genes onto endothelial cell programs
-CHILD_DEPTH = 3  # Expand children up to this depth
+logger = logging.getLogger(__name__)
 
+PAPER_PMID = "38326615"
+CHILD_DEPTH = 3
 
-# === Stoplist: filter broad MeSH terms ===
 BROAD_STOPLIST = {
-    "D006801",  # Humans
-    "D000818",  # Animals
-    "D002477",  # Cells
-    "D005260",  # Enzymes
-    "D010801",  # Proteins
-    "D000740",  # Anatomy
-    "D009944",  # Metabolism
-    "D012679",  # Signal Transduction
-    "D004958",  # Genes
-    "D013964",  # Subcellular Fractions
+    "D006801",
+    "D000818",
+    "D002477",
+    "D005260",
+    "D010801",
+    "D000740",
+    "D009944",
+    "D012679",
+    "D004958",
+    "D013964",
 }
 
-
-# =========================
-# SEED FAMILIES
-# =========================
 CAD_SEEDS = [
     ("D003324", "Coronary Artery Disease"),
     ("D001161", "Atherosclerosis"),
@@ -105,9 +104,6 @@ HEART_DISEASE_SEEDS = [
 ]
 
 
-# =========================
-# HELPERS
-# =========================
 def _safe_norm_mesh(db_id: str) -> str:
     """Normalize or safely format MeSH ID."""
     try:
@@ -121,7 +117,7 @@ def _get_mesh_child_terms(
     mesh_term: Tuple[str, str],
     depth: Optional[int] = None,
     *,
-    client: Neo4jClient
+    client: Neo4jClient,
 ) -> Set[Tuple[str, str, str]]:
     """Return (mesh_id, mesh_name, parent_name) for all descendants."""
     db_id, parent_name = mesh_term
@@ -137,11 +133,11 @@ def _get_mesh_child_terms(
 
     try:
         rows = client.query_tx(query, mesh_id=meshid_norm)
-    except Exception as e:
-        print(f"⚠️ Error expanding {db_id}: {e}")
+    except Exception:
+        logger.exception("Error expanding %s", db_id)
         return set()
 
-    out = set()
+    out: set[tuple[str, str, str]] = set()
     for r in rows:
         cid = r.get("id") if isinstance(r, dict) else r[0]
         cname = r.get("name") if isinstance(r, dict) else (r[1] if len(r) > 1 else "")
@@ -155,12 +151,12 @@ def _expand_family(
     seeds: Iterable[Tuple[str, str]],
     depth: Optional[int],
     origin: str,
-    client: Neo4jClient
+    client: Neo4jClient,
 ) -> Set[Tuple[str, str, str, str]]:
     """Expand a family of MeSH seeds and label origin + child_of."""
-    results = set()
+    results: set[tuple[str, str, str, str]] = set()
     for mid, name in seeds:
-        results.add((mid, name, origin, ""))  # Root term
+        results.add((mid, name, origin, ""))
         children = _get_mesh_child_terms((mid, name), depth=depth, client=client)
         for cid, cname, parent in children:
             results.add((cid, cname, origin, parent))
@@ -179,11 +175,11 @@ def _get_names_for_mesh_ids(mesh_ids: List[str], *, client: Neo4jClient) -> Dict
     """
     try:
         rows = client.query_tx(query, ids=normalized)
-    except Exception as e:
-        print(f"⚠️ Error fetching MeSH names: {e}")
+    except Exception:
+        logger.exception("Error fetching MeSH names")
         return {}
 
-    name_map = {}
+    name_map: dict[str, str] = {}
     for r in rows:
         if isinstance(r, dict):
             mesh_id = r.get("id", "").replace("mesh:", "")
@@ -197,48 +193,48 @@ def _get_names_for_mesh_ids(mesh_ids: List[str], *, client: Neo4jClient) -> Dict
 
 
 def main():
+    ap = argparse.ArgumentParser(description="Extract and expand MeSH term families.")
+    ap.add_argument("--output", required=True, help="Output CSV path for the comprehensive MeSH list.")
+    ap.add_argument("--child-depth", type=int, default=CHILD_DEPTH, help="Depth for child expansion.")
+    args = ap.parse_args()
+
     t0 = time.time()
     client = Neo4jClient()
 
-    # --- Extract from PubMed ---
-    print(f"📄 Extracting MeSH from PubMed {PAPER_PMID}")
+    logger.info("Extracting MeSH from PubMed %s", PAPER_PMID)
     paper_map = get_mesh_ids_for_pmids([PAPER_PMID], client=client)
     raw_terms = paper_map.get(PAPER_PMID, []) or []
     filtered_terms = [mid for mid in raw_terms if mid not in BROAD_STOPLIST]
 
-    expanded_paper = set()
+    expanded_paper: set[tuple[str, str, str, str]] = set()
     for mid in filtered_terms:
-        expanded_paper.add((mid, "", "Paper", ""))  # names filled later
+        expanded_paper.add((mid, "", "Paper", ""))
 
-    # --- Expand Families ---
-    print("🫀 Expanding CAD, Endothelial, Heart, Heart Disease families...")
-    expanded_cad = _expand_family(CAD_SEEDS, CHILD_DEPTH, "CAD", client)
-    expanded_endo = _expand_family(ENDOTHELIAL_SEEDS, CHILD_DEPTH, "Endothelial", client)
-    expanded_heart = _expand_family(HEART_SEEDS, CHILD_DEPTH, "Heart", client)
-    expanded_hd = _expand_family(HEART_DISEASE_SEEDS, CHILD_DEPTH, "Heart Disease", client)
+    logger.info("Expanding CAD, Endothelial, Heart, Heart Disease families...")
+    expanded_cad = _expand_family(CAD_SEEDS, args.child_depth, "CAD", client)
+    expanded_endo = _expand_family(ENDOTHELIAL_SEEDS, args.child_depth, "Endothelial", client)
+    expanded_heart = _expand_family(HEART_SEEDS, args.child_depth, "Heart", client)
+    expanded_hd = _expand_family(HEART_DISEASE_SEEDS, args.child_depth, "Heart Disease", client)
 
-    # --- Combine ---
     combined = expanded_paper | expanded_cad | expanded_endo | expanded_heart | expanded_hd
 
-    # --- Fetch missing names ---
     all_ids = [r[0] for r in combined if not r[1]]
     if all_ids:
         name_map = _get_names_for_mesh_ids(all_ids, client=client)
-        updated = set()
+        updated: set[tuple[str, str, str, str]] = set()
         for mid, name, origin, parent in combined:
             if not name:
                 name = name_map.get(mid, "")
             updated.add((mid, name, origin, parent))
         combined = updated
 
-    # --- Save ---
     df = pd.DataFrame(sorted(combined), columns=["mesh_id", "mesh_name", "origin", "child_of"])
     df.drop_duplicates(subset=["mesh_id", "origin"], inplace=True)
-    df.to_csv(OUTPUT_FILE, index=False)
+    df.to_csv(args.output, index=False)
 
-    print(f"\n✅ Total unique MeSH terms: {len(df)}")
-    print(f"💾 Saved merged MeSH catalog → {OUTPUT_FILE}")
-    print(f"⏱ Done in {(time.time() - t0)/60:.2f} minutes.")
+    logger.info("Total unique MeSH terms: %d", len(df))
+    logger.info("Saved merged MeSH catalog to %s", args.output)
+    logger.info("Done in %.2f minutes.", (time.time() - t0) / 60)
 
 
 if __name__ == "__main__":

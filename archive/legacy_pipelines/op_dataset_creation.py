@@ -1,21 +1,18 @@
-"""
-Create a synthetic OmniPath 3-hop dataset from INDRA results
-------------------------------------------------------------
-✅ Guarantees all 7 of top 20 pairs are represented
-✅ Keeps global size ≈ 18% of INDRA
-✅ Applies 20% identical, 35% partial, 45% different intermediate logic
-✅ Ensures both intermediates are always filled
-✅ Mimics real-world scenario where OmniPath covers fewer pairs & smaller network
-"""
+"""Create a synthetic OmniPath 3-hop dataset from INDRA results."""
+from __future__ import annotations
 
+
+import argparse
 import pandas as pd
 import numpy as np
 
-# -------------------------
+import logging
+
+
+logger = logging.getLogger(__name__)
 # CONFIGURATION
-# -------------------------
-INDRA_PATH = '/Users/prashammarfatia/Downloads/indra_3hop_no_hgnc_prefix.csv'
-OUTPUT_PATH = '/Users/prashammarfatia/Downloads/omnipath_3hop_final.csv'
+INDRA_PATH = 'indra_3hop_no_hgnc_prefix.csv'
+OUTPUT_PATH = 'omnipath_3hop_final.csv'
 
 OP_COVERAGE = 0.18          # ~18% of INDRA
 OP_PAIR_FRACTION = 7 / 20   # ~7 of top 20 pairs
@@ -24,12 +21,10 @@ RATIO_IDENTICAL = 0.20
 RATIO_PARTIAL = 0.35
 RATIO_DIFFERENT = 0.45
 
-# -------------------------
 # MAIN FUNCTION
-# -------------------------
 def create_synthetic_omnipath():
     indra_df = pd.read_csv(INDRA_PATH)
-    print(f"Loaded {len(indra_df)} INDRA rows")
+    logger.info("Loaded %s INDRA rows", len(indra_df))
 
     # Keep rows with valid pval and logfoldchange
     indra_clean = indra_df[np.isfinite(indra_df['pval']) & np.isfinite(indra_df['logfoldchange'])].copy()
@@ -41,15 +36,15 @@ def create_synthetic_omnipath():
         .drop_duplicates(subset=['source', 'target'])
         .head(20)
     )
-    print(f"Top 20 INDRA pairs selected: {len(top_pairs)}")
+    logger.info("Top 20 INDRA pairs selected: %s", len(top_pairs))
 
     # Choose ~7 random pairs to appear in OmniPath
     selected_pairs = top_pairs.sample(n=7, random_state=42)[['source', 'target']]
     selected_pairs_set = set(zip(selected_pairs['source'], selected_pairs['target']))
 
-    print("\nSelected 7 pairs for OmniPath representation:")
+    logger.info("\nSelected 7 pairs for OmniPath representation:")
     for s, t in selected_pairs_set:
-        print(f"  {s} → {t}")
+        logger.info("  %s → %s", s, t)
 
     # Collect all unique intermediates from INDRA
     all_intermediates = set(indra_clean['intermediate_1'].dropna().unique()) | \
@@ -124,20 +119,25 @@ def create_synthetic_omnipath():
     omnipath_df = pd.DataFrame(op_rows)
     omnipath_df.to_csv(OUTPUT_PATH, index=False)
 
-    # -------------------------
     # SUMMARY
-    # -------------------------
-    print(f"\n✅ Synthetic OmniPath dataset created: {OUTPUT_PATH}")
-    print(f"  Rows: {len(omnipath_df)} (≈ {100*len(omnipath_df)/len(indra_clean):.1f}% of INDRA)")
-    print(f"  Unique intermediates: {len(pd.unique(omnipath_df[['intermediate_1','intermediate_2']].values.ravel()))}")
-    print(f"  Covered top-20 pairs: {len(selected_pairs_set)} (shown below)")
+    logger.info("\n Synthetic OmniPath dataset created: %s", OUTPUT_PATH)
+    logger.info("  Rows: %s (≈ %.1f%% of INDRA)", len(omnipath_df), 100*len(omnipath_df)/len(indra_clean))
+    logger.info("  Unique intermediates: %s", len(pd.unique(omnipath_df[['intermediate_1','intermediate_2']].values.ravel())))
+    logger.info("  Covered top-20 pairs: %s (shown below)", len(selected_pairs_set))
     for s, t in selected_pairs_set:
-        print(f"   • {s} → {t}")
-    print("\n  Pathway-type distribution:")
-    print(omnipath_df['pathway_type'].value_counts())
+        logger.info("   • %s → %s", s, t)
+    logger.info("\n  Pathway-type distribution:")
+    logger.info(omnipath_df['pathway_type'].value_counts())
 
     return omnipath_df
 
 
+
+
+def main():
+    ap = argparse.ArgumentParser()
+
+
+
 if __name__ == "__main__":
-    create_synthetic_omnipath()
+    main()

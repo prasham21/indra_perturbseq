@@ -1,28 +1,16 @@
-#!/usr/bin/env python3
-"""
-Compute TP/FP + TPR/FPR across p-value thresholds using:
-
-- Sources = target_validation_expanded.csv filtered to Karen_Flag == Use_for_analysis
-- Denominators from each source's <SOURCE>_vs_control.csv (names + pval column), self removed
-- Explained pairs = union of (source,target) from one or more INDRA path CSVs (TP/FP/outlier), self removed
-- For each threshold t:
-    positives_total(t) = sum_s |{x: p_sx <= t}|
-    negatives_total(t) = sum_s |{x: p_sx >  t}|
-    TP_total(t) = sum_s |{x in explained(s): p_sx <= t}|
-    FP_total(t) = sum_s |{x in explained(s): p_sx >  t}|
-    TPR_overall(t) = TP_total / positives_total
-    FPR_overall(t) = FP_total / negatives_total
-
-Prints per-threshold stats. Optional output CSV.
-"""
+"""Compute TP/FP + TPR/FPR over p-value thresholds using filtered sources."""
+from __future__ import annotations
 
 import argparse
+import logging
 import os
 from collections import defaultdict
 
 import numpy as np
 import pandas as pd
 from indra.databases import hgnc_client
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_THRESHOLDS = [0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.001, 0.0005, 0.0001]
 
@@ -54,11 +42,11 @@ def pick_pcol(df: pd.DataFrame) -> str:
     raise ValueError(f"No p-value column found. Columns: {df.columns.tolist()}")
 
 
-def load_karen_sources(tv_path: str, source_col: str, flag_col: str, flag_value: str):
-    tv = pd.read_csv(tv_path, low_memory=False)
+def load_filtered_sources(target_validation_path: str, source_col: str, flag_col: str, flag_value: str):
+    tv = pd.read_csv(target_validation_path, low_memory=False)
     for c in (source_col, flag_col):
         if c not in tv.columns:
-            raise ValueError(f"Missing column '{c}' in {tv_path}. Columns: {tv.columns.tolist()}")
+            raise ValueError(f"Missing column '{c}' in {target_validation_path}. Columns: {tv.columns.tolist()}")
 
     tv = tv[tv[flag_col] == flag_value].copy()
     raw = [str(x).strip() for x in tv[source_col].dropna().tolist() if str(x).strip()]
@@ -88,8 +76,8 @@ def load_explained_pairs(paths: list[str], source_col: str, target_col: str):
     return explained
 
 
-def deg_path_for_source(de_dir: str, src: str) -> str:
-    return os.path.join(de_dir, f"{src}_vs_control.csv")
+def deg_path_for_source(deg_dir: str, src: str) -> str:
+    return os.path.join(deg_dir, f"{src}_vs_control.csv")
 
 
 def build_pmap_for_source(deg_csv: str, src: str) -> dict[str, float]:
@@ -118,51 +106,51 @@ def build_pmap_for_source(deg_csv: str, src: str) -> dict[str, float]:
 
 
 def main():
-    ap = argparse.ArgumentParser(description="TP/FP + TPR/FPR over p-value thresholds (Karen sources).")
-    ap.add_argument("--tv-path", required=True, help="target_validation_expanded.csv")
-    ap.add_argument("--tv-source-col", default="Gene")
-    ap.add_argument("--karen-flag-col", default="Karen_Flag")
-    ap.add_argument("--karen-flag-value", default="Use_for_analysis")
+    ap = argparse.ArgumentParser(
+        description="TP/FP + TPR/FPR over p-value thresholds (filtered sources).",
+    )
+    ap.add_argument("--target-validation", required=True, help="target_validation_expanded.csv")
+    ap.add_argument("--source-column", default="Gene")
+    ap.add_argument("--filter-column", default="analysis_flag")
+    ap.add_argument("--filter-value", default="Use_for_analysis")
 
-    ap.add_argument("--de-dir", required=True, help="Folder containing <SOURCE>_vs_control.csv files")
+    ap.add_argument("--deg-dir", required=True, help="Folder containing <SOURCE>_vs_control.csv files")
     ap.add_argument(
-        "--paths",
-        nargs="+",
-        required=True,
-        help="One or more INDRA path CSVs to union (TP/FP/outliers). Must have source/target columns.",
+        "--paths", nargs="+", required=True,
+        help="One or more INDRA path CSVs to union. Must have source/target columns.",
     )
     ap.add_argument("--path-source-col", default="source")
     ap.add_argument("--path-target-col", default="target")
 
     ap.add_argument("--thresholds", nargs="+", type=float, default=DEFAULT_THRESHOLDS)
     ap.add_argument("--print-table", action="store_true")
-    ap.add_argument("--out-csv", default="", help="If set, write per-threshold summary CSV to this path.")
+    ap.add_argument("--out-csv", default="", help="If set, write per-threshold summary CSV.")
 
     args = ap.parse_args()
     thresholds = np.array(args.thresholds, dtype=float)
 
-    print("Loading Karen-flagged sources...")
-    sources = load_karen_sources(
-        tv_path=args.tv_path,
-        source_col=args.tv_source_col,
-        flag_col=args.karen_flag_col,
-        flag_value=args.karen_flag_value,
+    logger.info("Loading filtered sources...")
+    sources = load_filtered_sources(
+        target_validation_path=args.target_validation,
+        source_col=args.source_column,
+        flag_col=args.filter_column,
+        flag_value=args.filter_value,
     )
-    print(f"Karen sources (unique, normalized): {len(sources)}")
+    logger.info("Filtered sources (unique, normalized): %d", len(sources))
 
-    print("Loading explained pairs (union across path CSVs)...")
+    logger.info("Loading explained pairs (union across path CSVs)...")
     explained_pairs = load_explained_pairs(args.paths, args.path_source_col, args.path_target_col)
-    print(f"Explained unique pairs: {len(explained_pairs):,}")
+    logger.info("Explained unique pairs: %d", len(explained_pairs))
 
     expl_by_src = defaultdict(set)
     for s, t in explained_pairs:
         expl_by_src[s].add(t)
 
-    print("Caching per-source control p-values (from DEG files)...")
+    logger.info("Caching per-source control p-values (from DEG files)...")
     cache = {}
     missing = 0
     for src in sources:
-        f = deg_path_for_source(args.de_dir, src)
+        f = deg_path_for_source(args.deg_dir, src)
         if not os.path.exists(f):
             missing += 1
             continue
@@ -173,8 +161,7 @@ def main():
         pvals_all = np.fromiter(pmap.values(), dtype=float)
         cache[src] = (pvals_all, pmap)
 
-    print(f"Cached sources: {len(cache)} | missing/unusable DEG: {missing}")
-    print()
+    logger.info("Cached sources: %d | missing/unusable DEG: %d", len(cache), missing)
 
     rows = []
     for thr in thresholds:
@@ -224,21 +211,20 @@ def main():
         }
         rows.append(row)
 
-        print(
-            f"thr {thr:g} | "
-            f"Overall: TPR={row['TPR_overall']:.4f}, FPR={row['FPR_overall']:.4f} | "
-            f"Per-source avg: TPR={row['TPR_per_source_avg']:.4f}, FPR={row['FPR_per_source_avg']:.4f}"
+        logger.info(
+            "thr %g | Overall: TPR=%.4f, FPR=%.4f | Per-source avg: TPR=%.4f, FPR=%.4f",
+            thr, row["TPR_overall"], row["FPR_overall"],
+            row["TPR_per_source_avg"], row["FPR_per_source_avg"],
         )
 
     out_df = pd.DataFrame(rows)
 
     if args.out_csv:
         out_df.to_csv(args.out_csv, index=False)
-        print(f"\nWrote CSV: {args.out_csv}")
+        logger.info("Wrote CSV: %s", args.out_csv)
 
     if args.print_table:
-        print("\nPer-threshold summary:")
-        print(out_df.to_string(index=False))
+        logger.info("Per-threshold summary:\n%s", out_df.to_string(index=False))
 
 
 if __name__ == "__main__":

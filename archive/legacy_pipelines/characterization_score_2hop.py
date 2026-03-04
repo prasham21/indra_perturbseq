@@ -1,5 +1,12 @@
+"""Superseded legacy script for 2-hop gene characterization scoring.
+
+Refactored into src/indra_perturbseq/pipelines/.
+"""
+from __future__ import annotations
+
 import argparse
 import json
+import logging
 from collections import defaultdict
 
 import pandas as pd
@@ -8,6 +15,7 @@ import matplotlib.pyplot as plt
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra.databases import hgnc_client
 
+logger = logging.getLogger(__name__)
 
 EDGE_EVIDENCE_BATCH_QUERY = """
 UNWIND $edges AS e
@@ -45,8 +53,9 @@ def parse_evidence_json(evidence_str: str):
     return pmid, source_api, source_sub_id
 
 
-def evidence_source_identity(pmid: str | None, source_api: str | None, source_sub_id: str | None) -> str | None:
-    # Karen's rule: count each paper once; DBs only when PMID missing
+def evidence_source_identity(
+    pmid: str | None, source_api: str | None, source_sub_id: str | None,
+) -> str | None:
     if pmid and pmid.isdigit():
         return f"PMID:{pmid}"
 
@@ -69,7 +78,7 @@ def batched(iterable, batch_size: int):
 
 
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(description="2-hop gene characterization scoring")
     ap.add_argument("--input-csv", required=True)
     ap.add_argument("--out-gene-csv", required=True)
     ap.add_argument("--out-path-csv", required=True)
@@ -84,17 +93,15 @@ def main():
     if missing:
         raise ValueError(f"Missing required columns: {missing}. Present: {df.columns.tolist()}")
 
-    # Build unique edges (symbol-level)
     hop1_edges_sym = set()
     hop2_edges_sym = set()
     for _, r in df.iterrows():
         hop1_edges_sym.add((str(r["source"]).strip(), str(r["intermediate"]).strip(), str(r["stmt_type_1"]).strip()))
         hop2_edges_sym.add((str(r["intermediate"]).strip(), str(r["target"]).strip(), str(r["stmt_type_2"]).strip()))
 
-    print(f"Unique hop1 edges: {len(hop1_edges_sym):,}")
-    print(f"Unique hop2 edges: {len(hop2_edges_sym):,}")
+    logger.info("Unique hop1 edges: %d", len(hop1_edges_sym))
+    logger.info("Unique hop2 edges: %d", len(hop2_edges_sym))
 
-    # Cache HGNC symbol -> id and build Neo4j edge maps
     sym_to_hgnc = {}
 
     def sym_to_hgnc_id(sym: str) -> str | None:
@@ -107,8 +114,6 @@ def main():
 
     hop1_edges = []
     hop2_edges = []
-
-    # Keep maps from (symbol,symbol,stmt_type) -> (neo4j ids key) so we can join back
     hop1_keymap = {}
     hop2_keymap = {}
 
@@ -128,7 +133,6 @@ def main():
     for a, b, st in hop2_edges_sym:
         add_edge(hop2_edges, hop2_keymap, a, b, st)
 
-    # Deduplicate Neo4j edges list
     def dedupe_edges(edge_list):
         seen = set()
         out = []
@@ -143,14 +147,13 @@ def main():
     hop1_edges = dedupe_edges(hop1_edges)
     hop2_edges = dedupe_edges(hop2_edges)
 
-    print(f"Neo4j-resolvable hop1 edges: {len(hop1_edges):,}")
-    print(f"Neo4j-resolvable hop2 edges: {len(hop2_edges):,}")
+    logger.info("Neo4j-resolvable hop1 edges: %d", len(hop1_edges))
+    logger.info("Neo4j-resolvable hop2 edges: %d", len(hop2_edges))
 
     client = Neo4jClient()
 
-    # Query evidence for edges -> edge_key (neo4j) -> set of unique sources (PMID:* or DB:*)
     edge_sources = defaultdict(set)
-    edge_evidence_mentions = defaultdict(int)  # (source_id, target_id, stmt_type) -> # Evidence JSON rows
+    edge_evidence_mentions = defaultdict(int)
 
     def fetch_edge_sources(edges):
         for batch in batched(edges, args.batch_size):
@@ -158,10 +161,8 @@ def main():
             for source_id, target_id, stmt_type, evidence_str in rows:
                 pmid, source_api, source_sub_id = parse_evidence_json(evidence_str)
                 if pmid is None and source_api is None and source_sub_id is None:
-                    # JSON parse failed; skip counting
                     continue
 
-                # count every evidence mention (each Evidence JSON item counts once)
                 edge_evidence_mentions[(source_id, target_id, stmt_type)] += 1
 
                 ident = evidence_source_identity(pmid, source_api, source_sub_id)
@@ -172,11 +173,10 @@ def main():
     fetch_edge_sources(hop1_edges)
     fetch_edge_sources(hop2_edges)
 
-    print(f"Edges with any extracted sources: {len(edge_sources):,}")
+    logger.info("Edges with any extracted sources: %d", len(edge_sources))
 
-    # Build gene -> unique sources (and evidence mentions) by propagating edge info to endpoint genes
     gene_sources = defaultdict(set)
-    gene_evidence_mentions = defaultdict(int)  # gene symbol -> total evidence mentions across its edges
+    gene_evidence_mentions = defaultdict(int)
 
     def add_gene_sources_for_edge(a_sym, b_sym, stmt_type, keymap):
         key = keymap.get((a_sym, b_sym, stmt_type))
@@ -199,13 +199,13 @@ def main():
     for a, b, st in hop2_edges_sym:
         add_gene_sources_for_edge(a, b, st, hop2_keymap)
 
-    # Ensure we include all genes that appear in the CSV (even if 0 sources/mentions)
-    all_genes_in_csv = sorted(set(pd.concat([df["source"], df["intermediate"], df["target"]]).astype(str).str.strip()))
+    all_genes_in_csv = sorted(
+        set(pd.concat([df["source"], df["intermediate"], df["target"]]).astype(str).str.strip())
+    )
     for g in all_genes_in_csv:
-        gene_sources[g]  # touch default
-        gene_evidence_mentions[g] += 0  # touch default
+        gene_sources[g]
+        gene_evidence_mentions[g] += 0
 
-    # Gene-level output
     genes = sorted(gene_sources.keys())
     literature_count = []
     database_count = []
@@ -221,35 +221,29 @@ def main():
         characterization_count.append(lit + db)
         evidence_mentions_count.append(int(gene_evidence_mentions.get(g, 0)))
 
-    gene_char = pd.DataFrame(
-        {
-            "gene": genes,
-            "literature_count": literature_count,
-            "database_count": database_count,
-            "characterization_count": characterization_count,
-            "evidence_mentions_count": evidence_mentions_count,  # NEW (added at end)
-        }
-    )
+    gene_char = pd.DataFrame({
+        "gene": genes,
+        "literature_count": literature_count,
+        "database_count": database_count,
+        "characterization_count": characterization_count,
+        "evidence_mentions_count": evidence_mentions_count,
+    })
     gene_char.to_csv(args.out_gene_csv, index=False)
-    print(f"Wrote gene characterization -> {args.out_gene_csv}")
+    logger.info("Wrote gene characterization -> %s", args.out_gene_csv)
 
-    # Attach to paths (append new columns at the end; do not modify existing columns)
     char_map = gene_char.set_index("gene")["characterization_count"].to_dict()
 
-    new_cols = pd.DataFrame(
-        {
-            "source_char": df["source"].astype(str).str.strip().map(char_map).fillna(0).astype(int),
-            "intermediate_char": df["intermediate"].astype(str).str.strip().map(char_map).fillna(0).astype(int),
-            "target_char": df["target"].astype(str).str.strip().map(char_map).fillna(0).astype(int),
-        }
-    )
+    new_cols = pd.DataFrame({
+        "source_char": df["source"].astype(str).str.strip().map(char_map).fillna(0).astype(int),
+        "intermediate_char": df["intermediate"].astype(str).str.strip().map(char_map).fillna(0).astype(int),
+        "target_char": df["target"].astype(str).str.strip().map(char_map).fillna(0).astype(int),
+    })
     new_cols["min_char"] = new_cols[["source_char", "intermediate_char", "target_char"]].min(axis=1)
 
     df_out = pd.concat([df, new_cols], axis=1)
     df_out.to_csv(args.out_path_csv, index=False)
-    print(f"Wrote path-level CSV with characterization -> {args.out_path_csv}")
+    logger.info("Wrote path-level CSV with characterization -> %s", args.out_path_csv)
 
-    # Histogram
     plt.figure(figsize=(8, 5))
     plt.hist(gene_char["characterization_count"], bins=50)
     plt.yscale("log")
@@ -259,8 +253,9 @@ def main():
     plt.tight_layout()
     plt.savefig(args.out_hist, dpi=200)
     plt.close()
-    print(f"Wrote histogram -> {args.out_hist}")
+    logger.info("Wrote histogram -> %s", args.out_hist)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

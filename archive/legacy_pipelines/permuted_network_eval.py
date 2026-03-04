@@ -1,26 +1,6 @@
 #!/usr/bin/env python3
-"""
-Permuted-network pathfinding for TPR comparison (real vs permuted).
-
-This script produces PATH CSVs on a label-permuted INDRA export graph.
-
-Key points:
-- Positives are fixed experimental pairs: for each perturbation gene, DEG targets with pval < threshold.
-- Network is permuted: HGNC node labels are shuffled (topology unchanged).
-- Output: permuted 1-hop and 2-hop path CSVs with minimal columns.
-- Self paths are filtered out (source == target) to match your real outputs.
-- Compute TPR/coverage in a separate module by comparing real vs permuted outputs.
-
-1-hop output columns:
-  source, target, stmt_type, belief, evidence_count, logfoldchange, pval
-
-2-hop output columns:
-  source, intermediate, target,
-  stmt_type_1, stmt_type_2,
-  belief_1, belief_2,
-  evidence_1, evidence_2,
-  logfoldchange, pval
-"""
+"""Permuted-network pathfinding for TPR comparison (real vs permuted)."""
+from __future__ import annotations
 
 import argparse
 import math
@@ -33,13 +13,14 @@ import numpy as np
 import pandas as pd
 from indra.databases import hgnc_client
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 INCDEC = {"IncreaseAmount", "DecreaseAmount"}
 
 
-# -----------------------------
-# Graph loading
-# -----------------------------
 def _install_numpy_dtype_shims():
     # Some exported pickles reference numpy dtype aliases (e.g., 'f16') that may not exist locally.
     if "f16" not in np.sctypeDict:
@@ -61,9 +42,6 @@ def is_hgnc_node(G, node) -> bool:
     return (G.nodes.get(node, {}) or {}).get("ns") == "HGNC"
 
 
-# -----------------------------
-# HGNC normalization + DEG helpers
-# -----------------------------
 def normalize_hgnc_symbol(symbol: str):
     """
     Normalize to current HGNC symbol when possible.
@@ -102,19 +80,19 @@ def pick_sig_column(df: pd.DataFrame, prefer_fdr: bool) -> str:
     raise ValueError(f"DEG file missing p-value columns. Columns: {df.columns.tolist()}")
 
 
-def load_sources_from_target_validation(genes_csv: str, karen_flag_col: str, karen_flag_value: str, gene_col: str):
-    df = pd.read_csv(genes_csv, low_memory=False)
-    if karen_flag_col in df.columns:
-        df = df[df[karen_flag_col] == karen_flag_value].copy()
-    genes = [str(x).strip() for x in df[gene_col].dropna().tolist() if str(x).strip()]
+def load_sources_from_target_validation(source_genes_csv: str, filter_column: str, filter_value: str, gene_column: str):
+    df = pd.read_csv(source_genes_csv, low_memory=False)
+    if filter_column in df.columns:
+        df = df[df[filter_column] == filter_value].copy()
+    genes = [str(x).strip() for x in df[gene_column].dropna().tolist() if str(x).strip()]
     return genes
 
 
-def load_gene_set_from_csv(path: str, gene_col: str = "gene") -> set[str]:
+def load_gene_set_from_csv(path: str, gene_column: str = "gene") -> set[str]:
     df = pd.read_csv(path, low_memory=False)
-    if gene_col not in df.columns:
-        raise ValueError(f"CSV must have column '{gene_col}'. Columns: {df.columns.tolist()}")
-    genes = set(df[gene_col].astype(str).str.strip())
+    if gene_column not in df.columns:
+        raise ValueError(f"CSV must have column '{gene_column}'. Columns: {df.columns.tolist()}")
+    genes = set(df[gene_column].astype(str).str.strip())
     genes.discard("")
     out = set()
     for g in genes:
@@ -123,13 +101,13 @@ def load_gene_set_from_csv(path: str, gene_col: str = "gene") -> set[str]:
     return out
 
 
-def load_deg_targets_for_source(de_dir: str, raw_source_gene: str, p_threshold: float, prefer_fdr: bool):
+def load_deg_targets_for_source(deg_dir: str, raw_source_gene: str, p_threshold: float, prefer_fdr: bool):
     """
     Returns:
       - targets_list: list of normalized HGNC target symbols passing threshold
       - deg_map: dict[target] = {"logfoldchange": ..., "pval": ...} (pval uses chosen sig_col)
     """
-    deg_path = os.path.join(de_dir, f"{raw_source_gene}_vs_control.csv")
+    deg_path = os.path.join(deg_dir, f"{raw_source_gene}_vs_control.csv")
     if not os.path.exists(deg_path):
         return None, None, f"missing DEG file: {deg_path}"
 
@@ -166,9 +144,6 @@ def load_deg_targets_for_source(de_dir: str, raw_source_gene: str, p_threshold: 
     return targets, deg_map, None
 
 
-# -----------------------------
-# Statements on edges
-# -----------------------------
 def iter_incdec_statements_on_edge(G, src, tgt):
     ed = G.get_edge_data(src, tgt) or {}
     stmts = ed.get("statements", [])
@@ -225,19 +200,8 @@ def best_statement(edge_data, require_incdec: bool):
     return best
 
 
-# -----------------------------
-# Permuted-network "view" (no huge graph copy)
-# -----------------------------
 class PermutationView:
-    """
-    Permuted-label network view via a bijection on HGNC nodes.
-
-    phi: original_node -> permuted_label
-    phi_inv: permuted_label -> original_node
-
-    Dataset uses labels (HGNC symbols). In permuted runs, to test (A,B),
-    we map A,B to original nodes via phi_inv, then query the original graph.
-    """
+"""Permuted-label network view via a bijection on HGNC nodes."""
 
     def __init__(self, G, hgnc_nodes: list[str], seed: int):
         rng = np.random.default_rng(seed)
@@ -257,9 +221,6 @@ class PermutationView:
         return self.phi.get(orig_node)
 
 
-# -----------------------------
-# Per-source pathfinding on permuted network (fixed positives)
-# -----------------------------
 def run_1hop_for_source_permuted(G, pv: PermutationView, src_label: str, targets: list[str], deg_map: dict):
     rows = []
 
@@ -352,21 +313,18 @@ def run_2hop_for_source_permuted(G, pv: PermutationView, src_label: str, targets
     return rows
 
 
-# -----------------------------
-# Main
-# -----------------------------
 def main():
     ap = argparse.ArgumentParser(description="Permuted-network 1-hop/2-hop path CSVs for TPR comparison (no self paths).")
     ap.add_argument("--graph-pkl", required=True)
-    ap.add_argument("--genes-csv", required=True, help="target_validation_expanded.csv")
-    ap.add_argument("--de-dir", required=True)
+    ap.add_argument("--source-genes-csv", required=True, help="target_validation_expanded.csv")
+    ap.add_argument("--deg-dir", required=True)
 
     ap.add_argument("--p-threshold", type=float, default=0.05)
     ap.add_argument("--prefer-fdr", action="store_true")
 
-    ap.add_argument("--karen-flag-col", default="Karen_Flag")
-    ap.add_argument("--karen-flag-value", default="Use_for_analysis")
-    ap.add_argument("--gene-col", default="Gene")
+    ap.add_argument("--filter-column", default="analysis_flag")
+    ap.add_argument("--filter-value", default="Use_for_analysis")
+    ap.add_argument("--gene-column", default="Gene")
 
     ap.add_argument("--seed", type=int, default=42, help="Permutation seed for HGNC label shuffling")
     ap.add_argument("--mode", choices=["1hop", "2hop", "both"], default="both")
@@ -374,39 +332,39 @@ def main():
     ap.add_argument("--allowed-intermediates-csv", default="", help="CSV with column 'gene' for allowed intermediates (optional)")
     ap.add_argument("--allowed-intermediates-gene-col", default="gene")
 
-    ap.add_argument("--out-1hop-csv", default="permuted_1hop_paths.csv")
-    ap.add_argument("--out-2hop-csv", default="permuted_2hop_paths.csv")
+    ap.add_argument("--output-1hop", default="permuted_1hop_paths.csv")
+    ap.add_argument("--output-2hop", default="permuted_2hop_paths.csv")
 
     ap.add_argument("--workers", type=int, default=4)
 
     args = ap.parse_args()
 
-    print("Loading INDRA export graph...")
+    logger.info("Loading INDRA export graph...")
     G, load_secs = load_graph(args.graph_pkl)
-    print(f"Loaded graph in {load_secs/60:.1f} min | nodes={G.number_of_nodes():,} edges={G.number_of_edges():,}")
+    logger.info(f"Loaded graph in {load_secs/60:.1f} min | nodes={G.number_of_nodes():,} edges={G.number_of_edges():,}")
 
     hgnc_nodes = [n for n in G.nodes if is_hgnc_node(G, n)]
-    print(f"HGNC nodes in graph: {len(hgnc_nodes):,}")
+    logger.info(f"HGNC nodes in graph: {len(hgnc_nodes):,}")
 
-    print("Creating permutation mapping (HGNC label shuffle; topology unchanged)...")
+    logger.info("Creating permutation mapping (HGNC label shuffle; topology unchanged)...")
     pv = PermutationView(G=G, hgnc_nodes=hgnc_nodes, seed=args.seed)
-    print(f"Permutation seed: {args.seed}")
+    logger.info(f"Permutation seed: {args.seed}")
 
     allowed_intermediates = None
     if args.allowed_intermediates_csv:
         allowed_intermediates = load_gene_set_from_csv(
             args.allowed_intermediates_csv,
-            gene_col=args.allowed_intermediates_gene_col,
+            gene_column=args.allowed_intermediates_gene_col,
         )
-        print(f"Allowed intermediates loaded: {len(allowed_intermediates):,}")
+        logger.info(f"Allowed intermediates loaded: {len(allowed_intermediates):,}")
 
     sources_raw = load_sources_from_target_validation(
-        genes_csv=args.genes_csv,
-        karen_flag_col=args.karen_flag_col,
-        karen_flag_value=args.karen_flag_value,
-        gene_col=args.gene_col,
+        source_genes_csv=args.source_genes_csv,
+        filter_column=args.filter_column,
+        filter_value=args.filter_value,
+        gene_column=args.gene_column,
     )
-    print(f"Sources in genes CSV: {len(sources_raw)}")
+    logger.info(f"Sources in genes CSV: {len(sources_raw)}")
 
     # Prepare per-source jobs: build fixed positives from DEG files in label space
     jobs = []
@@ -423,7 +381,7 @@ def main():
             continue
 
         targets, deg_map, err = load_deg_targets_for_source(
-            de_dir=args.de_dir,
+            deg_dir=args.deg_dir,
             raw_source_gene=raw_src,
             p_threshold=args.p_threshold,
             prefer_fdr=args.prefer_fdr,
@@ -447,7 +405,7 @@ def main():
         deg_map = {t: deg_map.get(t, {}) for t in targets}
         jobs.append((src_label, targets, deg_map))
 
-    print(f"Jobs prepared: {len(jobs)} sources | skipped: {skipped}")
+    logger.info(f"Jobs prepared: {len(jobs)} sources | skipped: {skipped}")
 
     onehop_rows = []
     twohop_rows = []
@@ -464,7 +422,7 @@ def main():
             )
         return out1, out2
 
-    print("Running permuted-network pathfinding...")
+    logger.info("Running permuted-network pathfinding...")
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
         futs = [ex.submit(job_fn, j) for j in jobs]
         for i, fut in enumerate(as_completed(futs), start=1):
@@ -474,21 +432,21 @@ def main():
             if out2:
                 twohop_rows.extend(out2)
             if i % 25 == 0 or i == len(futs):
-                print(f"  progress {i}/{len(futs)} | 1hop_rows={len(onehop_rows):,} | 2hop_rows={len(twohop_rows):,}")
+                logger.info(f"  progress {i}/{len(futs)} | 1hop_rows={len(onehop_rows):,} | 2hop_rows={len(twohop_rows):,}")
 
     if args.mode in ("1hop", "both"):
         df1 = pd.DataFrame(onehop_rows)
         df1 = df1[df1["source"] != df1["target"]].copy()  # final safety filter
-        df1.to_csv(args.out_1hop_csv, index=False)
-        print(f"Wrote {len(df1):,} permuted 1-hop rows -> {args.out_1hop_csv}")
+        df1.to_csv(args.output_1hop, index=False)
+        logger.info(f"Wrote {len(df1):,} permuted 1-hop rows -> {args.output_1hop}")
 
     if args.mode in ("2hop", "both"):
         df2 = pd.DataFrame(twohop_rows)
         df2 = df2[df2["source"] != df2["target"]].copy()  # final safety filter
-        df2.to_csv(args.out_2hop_csv, index=False)
-        print(f"Wrote {len(df2):,} permuted 2-hop rows -> {args.out_2hop_csv}")
+        df2.to_csv(args.output_2hop, index=False)
+        logger.info(f"Wrote {len(df2):,} permuted 2-hop rows -> {args.output_2hop}")
 
-    print("DONE.")
+    logger.info("DONE.")
 
 
 if __name__ == "__main__":

@@ -1,36 +1,17 @@
-"""
-POST-PROCESS ONE-STOP 2-HOP OUTPUT
+"""POST-PROCESS ONE-STOP 2-HOP OUTPUT."""
+from __future__ import annotations
 
-What this script does:
-1) Loads the one_stop output CSV and prints detailed column coverage stats
-   (row/col counts, column names, non-empty counts, key sanity checks for evidence + URLs).
-2) Filters Annotated MeSH terms (hop1/hop2) to ONLY those whose MeSH IDs exist in the
-   "comprehensive_mesh_list_EXPANDED_.csv" reference (matches your map_mesh_terms.py behavior).
-3) Enforces (source, target) uniqueness:
-   - keeps exactly ONE row per (source,target)
-   - selection prefers rows with "better completeness" and "better evidence":
-       * valid hop1/hop2 INDRA URLs + hashes
-       * evidence text looks like structured evidence (contains "1)")
-       * PMIDs present
-       * fewer placeholders like "No evidence found" / "Evidence from:" / "Database evidence only" / "Error"
-   - tie-breakers: higher |logfoldchange|, then higher evidence counts, then higher beliefs.
-
-Run example:
-python postprocess_2hop_output.py \
-  --input-csv "/Users/prashammarfatia/Downloads/2hop_full_all_gwas_sources_endothelial_intermediates.csv" \
-  --mesh-reference "/Users/prashammarfatia/Downloads/comprehensive_mesh_list_EXPANDED_.csv" \
-  --out-mesh-filtered "/Users/prashammarfatia/Downloads/2hop_mesh_reference_filtered.csv" \
-  --out-unique "/Users/prashammarfatia/Downloads/2hop_mesh_reference_filtered_unique_source_target.csv"
-"""
 
 import argparse
 import re
 import pandas as pd
 
+import logging
 
-# -----------------------------
+
+logger = logging.getLogger(__name__)
+
 # Basic utilities
-# -----------------------------
 def is_nonempty(x) -> bool:
     if x is None:
         return False
@@ -91,9 +72,7 @@ def safe_int(x, default=0):
         return default
 
 
-# -----------------------------
 # MeSH reference filtering (matches map_mesh_terms.py behavior)
-# -----------------------------
 def load_valid_mesh_ids(reference_file: str) -> set[str]:
     ref_df = pd.read_csv(reference_file, encoding="utf-8-sig", on_bad_lines="skip", low_memory=False)
     if "mesh_id" not in ref_df.columns:
@@ -127,8 +106,8 @@ def filter_mesh_terms_to_reference(text: str, valid_ids: set[str]) -> str:
 def apply_mesh_reference_filter(df: pd.DataFrame, reference_file: str) -> pd.DataFrame:
     df = df.copy()
     valid_ids = load_valid_mesh_ids(reference_file)
-    print(f"\n### MeSH reference")
-    print(f"- loaded valid MeSH IDs: {len(valid_ids):,} (D*)")
+    logger.info("\n### MeSH reference")
+    logger.info("- loaded valid MeSH IDs: %d (D*)", len(valid_ids))
 
     mesh_cols = ["Annotated MeSH terms hop1", "Annotated MeSH terms hop2"]
     for col in mesh_cols:
@@ -143,19 +122,17 @@ def apply_mesh_reference_filter(df: pd.DataFrame, reference_file: str) -> pd.Dat
         after_nonempty = nonempty_count(df[col])
         after_chars = df[col].fillna("").astype(str).str.len().sum()
 
-        print(f"- {col}: non-empty {before_nonempty:,} -> {after_nonempty:,} | total chars {before_chars:,} -> {after_chars:,}")
+        logger.info("- %s: non-empty %d -> %d | total chars %d -> %d", col, before_nonempty, after_nonempty, before_chars, after_chars)
 
     any_mesh_after = (
         df["Annotated MeSH terms hop1"].apply(is_nonempty)
         | df["Annotated MeSH terms hop2"].apply(is_nonempty)
     ).sum()
-    print(f"- rows with ANY kept MeSH after filtering: {any_mesh_after:,}/{len(df):,} ({any_mesh_after/len(df)*100:.1f}%)")
+    logger.info("- rows with ANY kept MeSH after filtering: %d/%d (%.1f%%)", any_mesh_after, len(df), any_mesh_after/len(df)*100)
     return df
 
 
-# -----------------------------
 # Uniqueness selection
-# -----------------------------
 def row_quality_score(row: pd.Series) -> float:
     # Strong signals
     url1_ok = is_valid_indra_url(row.get("hop1_indra_url", ""))
@@ -219,7 +196,7 @@ def make_unique_by_source_target(df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("Input must contain columns: source, target")
 
     # Compute quality score
-    print("\n### Uniqueness selection (source,target)")
+    logger.info("\n### Uniqueness selection (source,target)")
     df["_quality_score"] = df.apply(row_quality_score, axis=1)
 
     # Sort so the best row per (source,target) comes first
@@ -241,32 +218,30 @@ def make_unique_by_source_target(df: pd.DataFrame) -> pd.DataFrame:
     # Cleanup temp columns
     unique_df.drop(columns=["_quality_score", "_abs_logfc", "_ev_sum", "_belief_sum"], inplace=True, errors="ignore")
 
-    print(f"- rows before: {before:,}")
-    print(f"- unique (source,target) rows after: {after:,}")
-    print(f"- reduction: {before-after:,} ({(before-after)/before*100:.1f}%)")
+    logger.info("- rows before: %d", before)
+    logger.info("- unique (source,target) rows after: %d", after)
+    logger.info("- reduction: %d (%.1f%%)", before-after, (before-after)/before*100)
 
     # Some quick quality stats on selected rows
     url_ok = unique_df["hop1_indra_url"].apply(is_valid_indra_url).sum() if "hop1_indra_url" in unique_df.columns else 0
     url_ok2 = unique_df["hop2_indra_url"].apply(is_valid_indra_url).sum() if "hop2_indra_url" in unique_df.columns else 0
-    print(f"- selected rows with valid hop1 URL: {url_ok:,}/{after:,}")
-    print(f"- selected rows with valid hop2 URL: {url_ok2:,}/{after:,}")
+    logger.info("- selected rows with valid hop1 URL: %d/%d", url_ok, after)
+    logger.info("- selected rows with valid hop2 URL: %d/%d", url_ok2, after)
 
     return unique_df
 
 
-# -----------------------------
 # Reporting
-# -----------------------------
 def print_dataset_stats(df: pd.DataFrame, title: str):
-    print(f"\n### {title}")
-    print(f"- rows: {len(df):,}")
-    print(f"- columns: {len(df.columns):,}")
-    print(f"- column names: {df.columns.tolist()}")
+    logger.info("\n### %s", title)
+    logger.info("- rows: %d", len(df))
+    logger.info("- columns: %d", len(df.columns))
+    logger.info("- column names: %s", df.columns.tolist())
 
-    print("\n- non-empty values per column:")
+    logger.info("\n- non-empty values per column:")
     for col in df.columns:
         ne = nonempty_count(df[col])
-        print(f"  - {col}: {ne:,}/{len(df):,} ({ne/len(df)*100:.1f}%)")
+        logger.info("  - %s: %d/%d (%.1f%%)", col, ne, len(df), ne/len(df)*100)
 
     # Key checks
     key_cols = [
@@ -278,26 +253,24 @@ def print_dataset_stats(df: pd.DataFrame, title: str):
     ]
     present = [c for c in key_cols if c in df.columns]
     if present:
-        print("\n- key sanity checks:")
+        logger.info("\n- key sanity checks:")
         if "evidence_text_hop1" in df.columns:
             good = df["evidence_text_hop1"].apply(looks_like_structured_evidence).sum()
             bad = df["evidence_text_hop1"].apply(is_placeholder_evidence).sum()
-            print(f"  - hop1 evidence structured: {good:,}/{len(df):,} | placeholders/errors: {bad:,}/{len(df):,}")
+            logger.info("  - hop1 evidence structured: %d/%d | placeholders/errors: %d/%d", good, len(df), bad, len(df))
         if "evidence_text_hop2" in df.columns:
             good = df["evidence_text_hop2"].apply(looks_like_structured_evidence).sum()
             bad = df["evidence_text_hop2"].apply(is_placeholder_evidence).sum()
-            print(f"  - hop2 evidence structured: {good:,}/{len(df):,} | placeholders/errors: {bad:,}/{len(df):,}")
+            logger.info("  - hop2 evidence structured: %d/%d | placeholders/errors: %d/%d", good, len(df), bad, len(df))
         if "hop1_indra_url" in df.columns:
             ok = df["hop1_indra_url"].apply(is_valid_indra_url).sum()
-            print(f"  - hop1 URL valid format: {ok:,}/{len(df):,}")
+            logger.info("  - hop1 URL valid format: %d/%d", ok, len(df))
         if "hop2_indra_url" in df.columns:
             ok = df["hop2_indra_url"].apply(is_valid_indra_url).sum()
-            print(f"  - hop2 URL valid format: {ok:,}/{len(df):,}")
+            logger.info("  - hop2 URL valid format: %d/%d", ok, len(df))
 
 
-# -----------------------------
 # Main
-# -----------------------------
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--input-csv", required=True)
@@ -312,14 +285,14 @@ def main():
     # 1) Apply reference MeSH filtering (mapping/filtering step)
     df_mesh = apply_mesh_reference_filter(df, reference_file=args.mesh_reference)
     df_mesh.to_csv(args.out_mesh_filtered, index=False)
-    print(f"\nSaved MeSH-reference-filtered CSV -> {args.out_mesh_filtered}")
+    logger.info("\nSaved MeSH-reference-filtered CSV -> %s", args.out_mesh_filtered)
 
     print_dataset_stats(df_mesh, title="AFTER MeSH reference filtering")
 
     # 2) Enforce (source,target) uniqueness with strong quality selection
     df_unique = make_unique_by_source_target(df_mesh)
     df_unique.to_csv(args.out_unique, index=False)
-    print(f"\nSaved UNIQUE (source,target) CSV -> {args.out_unique}")
+    logger.info("\nSaved UNIQUE (source,target) CSV -> %s", args.out_unique)
 
     print_dataset_stats(df_unique, title="FINAL UNIQUE (source,target) output")
 

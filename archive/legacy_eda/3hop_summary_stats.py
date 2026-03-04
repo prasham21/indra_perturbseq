@@ -1,103 +1,109 @@
-import pandas as pd
+"""3-hop pathway coverage calculation for completed genes."""
+from __future__ import annotations
+
+import argparse
+import logging
 import os
+
+import pandas as pd
 from indra_cogex.analysis.source_targets_explanation import get_valid_gene_ids
-from indra.databases.hgnc_client import get_current_hgnc_id
+
+logger = logging.getLogger(__name__)
 
 
-def calculate_3hop_coverage():
-    print("Calculating 3-hop pathway coverage for completed genes only...")
-
-    # Load the 3-hop results
-    results_file = "partial_3hop_results.csv"
+def calculate_3hop_coverage(results_file, deg_folder):
+    """Calculate 3-hop pathway coverage for completed genes only."""
+    logger.info("Calculating 3-hop pathway coverage for completed genes only")
 
     if not os.path.exists(results_file):
-        print(f"Results file '{results_file}' not found!")
+        logger.error("Results file '%s' not found", results_file)
         return
 
     results_df = pd.read_csv(results_file)
-    print(f"Loaded 3-hop results: {len(results_df)} pathways")
+    logger.info("Loaded 3-hop results: %d pathways", len(results_df))
 
-    # Get unique source-target pairs from results
     results_pairs = results_df[['source', 'target']].drop_duplicates()
     found_pairs = len(results_pairs)
-    print(f"Unique source-target pairs found in 3-hop results: {found_pairs}")
+    logger.info("Unique source-target pairs found in 3-hop results: %d", found_pairs)
 
-    # Get completed source genes from results (these are our 90 genes)
-    completed_sources = results_df['source'].unique()
-    completed_sources = sorted(completed_sources)  # Sort for consistent ordering
-    print(f"Completed source genes: {len(completed_sources)}")
-    print(f"Completed genes: {', '.join(completed_sources[:10])}...")  # Show first 10
+    completed_sources = sorted(results_df['source'].unique())
+    logger.info("Completed source genes: %d", len(completed_sources))
+    logger.info("First 10 completed genes: %s...", ', '.join(completed_sources[:10]))
 
-    # Calculate total possible pairs for ONLY these 90 completed genes
     total_possible_pairs = 0
     gene_pair_counts = {}
 
-    print(f"\nCalculating total possible pairs for {len(completed_sources)} completed genes...")
+    logger.info("Calculating total possible pairs for %d completed genes", len(completed_sources))
 
     for i, source_gene in enumerate(completed_sources):
-        print(f"Processing {i + 1}/{len(completed_sources)}: {source_gene}...")
+        logger.info("Processing %d/%d: %s", i + 1, len(completed_sources), source_gene)
 
-        # Load DEG file for this gene
-        deg_path = f"/Users/prashammarfatia/Downloads/de_results_per_gene/{source_gene}_vs_control.csv"
+        deg_path = os.path.join(deg_folder, f"{source_gene}_vs_control.csv")
 
         if os.path.exists(deg_path):
             try:
                 df = pd.read_csv(deg_path)
-                df = df[df["pvals"] < 0.05]  # Same filtering as in analysis
+                df = df[df["pvals"] < 0.05]
 
                 gene_symbols = df["names"].dropna().unique().tolist()
                 converted = get_valid_gene_ids(gene_symbols)
-                valid_targets = len([v for v in converted if v])  # Count valid HGNC conversions
+                valid_targets = len([v for v in converted if v])
 
                 total_possible_pairs += valid_targets
                 gene_pair_counts[source_gene] = valid_targets
-                print(f"  {source_gene}: {valid_targets} possible targets")
+                logger.info("  %s: %d possible targets", source_gene, valid_targets)
 
             except Exception as e:
-                print(f"  Error processing {source_gene}: {e}")
+                logger.warning("  Error processing %s: %s", source_gene, e)
                 gene_pair_counts[source_gene] = 0
         else:
-            print(f"  DEG file not found for {source_gene}")
+            logger.info("  DEG file not found for %s", source_gene)
             gene_pair_counts[source_gene] = 0
 
-    # Calculate coverage for completed genes only
     if total_possible_pairs > 0:
         coverage_percent = (found_pairs / total_possible_pairs) * 100
 
-        print("\n" + "=" * 70)
-        print("3-HOP PATHWAY COVERAGE ANALYSIS (COMPLETED GENES ONLY)")
-        print("=" * 70)
-        print(f"Analysis scope: First {len(completed_sources)} completed perturbations")
-        print(f"Total possible source-target pairs: {total_possible_pairs:,}")
-        print(f"Source-target pairs with 3-hop pathways: {found_pairs:,}")
-        print(f"Coverage percentage: {coverage_percent:.2f}%")
-        print("=" * 70)
+        logger.info("3-HOP PATHWAY COVERAGE ANALYSIS (COMPLETED GENES ONLY)")
+        logger.info("Analysis scope: First %d completed perturbations", len(completed_sources))
+        logger.info("Total possible source-target pairs: %s", f"{total_possible_pairs:,}")
+        logger.info("Source-target pairs with 3-hop pathways: %s", f"{found_pairs:,}")
+        logger.info("Coverage percentage: %.2f%%", coverage_percent)
 
-        # Additional statistics
         avg_pathways_per_pair = len(results_df) / found_pairs if found_pairs > 0 else 0
-        print(f"Total 3-hop pathways found: {len(results_df):,}")
-        print(f"Average pathways per source-target pair: {avg_pathways_per_pair:.1f}")
+        logger.info("Total 3-hop pathways found: %s", f"{len(results_df):,}")
+        logger.info("Average pathways per source-target pair: %.1f", avg_pathways_per_pair)
 
-        # Show top/bottom performers
-        print(f"\nTop 5 genes by possible targets:")
         top_genes = sorted(gene_pair_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        logger.info("Top 5 genes by possible targets:")
         for gene, count in top_genes:
             source_results = results_df[results_df['source'] == gene]
             actual_pairs = len(source_results[['source', 'target']].drop_duplicates())
             gene_coverage = (actual_pairs / count * 100) if count > 0 else 0
-            print(f"  {gene}: {actual_pairs}/{count} pairs ({gene_coverage:.1f}% coverage)")
+            logger.info("  %s: %d/%d pairs (%.1f%% coverage)", gene, actual_pairs, count, gene_coverage)
 
-        print(f"\nBottom 5 genes by possible targets:")
         bottom_genes = sorted(gene_pair_counts.items(), key=lambda x: x[1])[:5]
+        logger.info("Bottom 5 genes by possible targets:")
         for gene, count in bottom_genes:
             source_results = results_df[results_df['source'] == gene]
             actual_pairs = len(source_results[['source', 'target']].drop_duplicates())
             gene_coverage = (actual_pairs / count * 100) if count > 0 else 0
-            print(f"  {gene}: {actual_pairs}/{count} pairs ({gene_coverage:.1f}% coverage)")
-
+            logger.info("  %s: %d/%d pairs (%.1f%% coverage)", gene, actual_pairs, count, gene_coverage)
     else:
-        print("No possible pairs found - check data files")
+        logger.warning("No possible pairs found - check data files")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="3-hop pathway coverage statistics")
+    parser.add_argument("--results-file", default="partial_3hop_results.csv",
+                        help="Path to partial_3hop_results.csv")
+    parser.add_argument("--deg-folder", required=True,
+                        help="Path to de_results_per_gene folder")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+    calculate_3hop_coverage(args.results_file, args.deg_folder)
 
 
 if __name__ == "__main__":
-    calculate_3hop_coverage()
+    main()

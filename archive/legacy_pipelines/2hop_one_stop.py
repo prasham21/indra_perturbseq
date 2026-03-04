@@ -1,21 +1,11 @@
-"""
-2-hop ONE-STOP PIPELINE
+"""Superseded legacy script for 2-hop one-stop pipeline.
 
-What it does (end-to-end):
-1) For each requested source gene:
-   - reads DEG file: <DE_DIR>/<GENE>_vs_control.csv
-   - selects significant targets using pvals (or pvals_adj if --prefer-fdr)
-   - queries INDRA Neo4j for 2-hop paths: source -> intermediate -> target
-   - FILTERS: keeps only rows whose intermediate is in endothelial_present_plus_manual.csv
-2) Enriches each row with:
-   - evidence text (formatted) + PMIDs for hop1 and hop2
-   - MeSH annotation for hop1 and hop2 PMIDs
-   - GWAS_genes_in_path + directionality
-   - stmt hashes + INDRA statement HTML links for hop1 and hop2
-3) Checkpointing + resume:
-   - Writes OUTPUT_CSV periodically during evidence and hash phases.
-   - With --resume, fills only missing columns.
+End-to-end: 2hop extraction -> endothelial intermediate filter ->
+evidence/pmids -> mesh -> gwas/directionality -> stmt hash + html urls.
+
+Refactored into src/indra_perturbseq/pipelines/.
 """
+from __future__ import annotations
 
 import argparse
 import json
@@ -36,14 +26,11 @@ from indra_cogex.client import get_mesh_ids_for_pmids
 from indra.databases import hgnc_client
 from indra.databases.hgnc_client import get_current_hgnc_id, get_hgnc_name
 
-# Silence very chatty INFO logs from indra_cogex (especially indra_cogex.client.queries)
+logger = logging.getLogger(__name__)
+
 logging.getLogger("indra_cogex").setLevel(logging.WARNING)
 logging.getLogger("indra_cogex.client.queries").setLevel(logging.WARNING)
 
-
-# -----------------------------
-# Constants
-# -----------------------------
 GWAS_GENES = {
     "BCAR1", "BMP1", "CALCRL", "CCM2", "CDKN1A", "CDKN2B", "CFDP1", "COL4A1", "COL4A2",
     "EXOC3L2", "FBN2", "FGD6", "FLT1", "FURIN", "GDPD5", "GGT5", "GOSR2", "IBTK", "LAMB2",
@@ -69,11 +56,8 @@ MATCH (e:Evidence {stmt_hash: stmt_hash})
 RETURN e.evidence
 """
 
-
-# -----------------------------
-# Thread-local Neo4j client
-# -----------------------------
 _thread_state = local()
+
 
 def get_thread_client():
     if not hasattr(_thread_state, "client") or _thread_state.client is None:
@@ -81,11 +65,8 @@ def get_thread_client():
     return _thread_state.client
 
 
-# -----------------------------
-# Helpers
-# -----------------------------
 def format_evidence_text(text: str) -> str:
-    """Convert '1. ...' -> '1) ...' and put blank lines between items; keep fallback text unchanged."""
+    """Convert '1. ...' -> '1) ...' and put blank lines between items."""
     if not isinstance(text, str):
         return text
     if text.startswith("Evidence from:") or text.startswith("No evidence found"):
@@ -103,17 +84,10 @@ def format_evidence_text(text: str) -> str:
 
 
 def normalize_gene_symbol(symbol: str) -> str:
-    """
-    Normalize to current HGNC symbol when possible.
-
-    Some HGNC lookups can return multiple IDs (a list). In that case we:
-    - map each HGNC id to a name if possible
-    - return a '; '-joined string
-    """
+    """Normalize to current HGNC symbol when possible."""
     if symbol is None or (isinstance(symbol, float) and pd.isna(symbol)):
         return symbol
 
-    # If something upstream accidentally produced a list/tuple, flatten to string output
     if isinstance(symbol, (list, tuple, set)):
         symbol = "; ".join([str(x) for x in symbol if x is not None])
 
@@ -123,7 +97,6 @@ def normalize_gene_symbol(symbol: str) -> str:
 
     hid = hgnc_client.get_current_hgnc_id(symbol)
 
-    # Handle ambiguous/multi-hit mappings
     if isinstance(hid, (list, tuple, set)):
         names = []
         for one in hid:
@@ -132,7 +105,6 @@ def normalize_gene_symbol(symbol: str) -> str:
             except Exception:
                 n = None
             names.append(n or str(one))
-        # If multiple, keep them all (better than crashing)
         return "; ".join([n for n in names if n])
 
     if hid:
@@ -167,26 +139,23 @@ def pick_sig_column(df: pd.DataFrame, prefer_fdr: bool) -> str:
     raise ValueError(f"DEG file missing p-value columns. Columns: {df.columns.tolist()}")
 
 
-# -----------------------------
-# Step 1: 2-hop extraction (targets from DEG, then endothelial intermediate filter)
-# -----------------------------
 def run_2hop_for_gene(
     gene: str,
-    de_dir: str,
+    deg_dir: str,
     p_threshold: float,
     prefer_fdr: bool,
     batch_size: int,
     allowed_intermediates: set[str],
 ) -> list[dict]:
     gene = gene.strip()
-    deg_path = os.path.join(de_dir, f"{gene}_vs_control.csv")
+    deg_path = os.path.join(deg_dir, f"{gene}_vs_control.csv")
     if not os.path.exists(deg_path):
-        print(f"SKIP: missing DEG file for {gene}: {deg_path}")
+        logger.warning("SKIP: missing DEG file for %s: %s", gene, deg_path)
         return []
 
     hgnc_id = get_current_hgnc_id(gene.upper())
     if not hgnc_id:
-        print(f"SKIP: no HGNC id for {gene}")
+        logger.warning("SKIP: no HGNC id for %s", gene)
         return []
     source_id = f"hgnc:{hgnc_id}"
 
@@ -226,13 +195,11 @@ def run_2hop_for_gene(
         for r in rows:
             _, intermediate_id, _, target_id, stmt1, stmt2, belief1, belief2, ev1, ev2 = r[:10]
 
-            # Convert intermediate to HGNC symbol if possible, else keep raw id
             if isinstance(intermediate_id, str) and intermediate_id.startswith("hgnc:"):
                 interm_symbol = get_hgnc_name(intermediate_id.replace("hgnc:", "")) or intermediate_id
             else:
-                interm_symbol = intermediate_id  # will not match endothelial symbol list
+                interm_symbol = intermediate_id
 
-            # Endothelial intermediate filter happens HERE (early)
             if str(interm_symbol) not in allowed_intermediates:
                 continue
 
@@ -256,9 +223,6 @@ def run_2hop_for_gene(
     return out
 
 
-# -----------------------------
-# Step 2: Evidence + PMIDs (stmt_hash -> Evidence JSON) + formatted text
-# -----------------------------
 def get_evidence_info(agent1: str, agent2: str, stmt_type: str, client: Neo4jClient):
     """Return (db_sources_text, pmids_list) via Neo4j Evidence nodes."""
     h1 = hgnc_client.get_current_hgnc_id(agent1)
@@ -334,7 +298,13 @@ def fetch_evidence_text(agent1: str, agent2: str, stmt_type: str, client: Neo4jC
         return f"Error fetching evidence: {e}"
 
 
-def enrich_with_evidence(df: pd.DataFrame, out_csv: str, max_workers: int, checkpoint_every: int, resume: bool) -> pd.DataFrame:
+def enrich_with_evidence(
+    df: pd.DataFrame,
+    out_csv: str,
+    max_workers: int,
+    checkpoint_every: int,
+    resume: bool,
+) -> pd.DataFrame:
     df = df.copy()
     for col in ["evidence_text_hop1", "pmids_hop1", "evidence_text_hop2", "pmids_hop2"]:
         if col not in df.columns:
@@ -349,10 +319,13 @@ def enrich_with_evidence(df: pd.DataFrame, out_csv: str, max_workers: int, check
     pending = [i for i in df.index if (row_needs(i) if resume else True)]
     total_pending = len(pending)
     if total_pending == 0:
-        print("Evidence step: nothing to do (all rows already filled).")
+        logger.info("Evidence step: nothing to do (all rows already filled).")
         return df
 
-    print(f"Evidence step: {total_pending}/{len(df)} rows pending | workers={max_workers} | checkpoint_every={checkpoint_every}")
+    logger.info(
+        "Evidence step: %d/%d rows pending | workers=%d | checkpoint_every=%d",
+        total_pending, len(df), max_workers, checkpoint_every,
+    )
 
     start_time = time.time()
 
@@ -394,21 +367,19 @@ def enrich_with_evidence(df: pd.DataFrame, out_csv: str, max_workers: int, check
                 eta_secs = (remaining / rate) if rate > 0 else float("inf")
 
                 df.to_csv(out_csv, index=False)
-                print(
-                    f"[checkpoint:evidence] done={done}/{total_pending} | left={remaining} | "
-                    f"elapsed={elapsed/60:.1f}m | rate={rate:.2f} rows/s | ETA={eta_secs/60:.1f}m | saved={out_csv}"
+                logger.info(
+                    "[checkpoint:evidence] done=%d/%d | left=%d | "
+                    "elapsed=%.1fm | rate=%.2f rows/s | ETA=%.1fm | saved=%s",
+                    done, total_pending, remaining,
+                    elapsed / 60, rate, eta_secs / 60, out_csv,
                 )
 
-    # final progress line (even if total_pending < checkpoint_every)
     elapsed = time.time() - start_time
     remaining = total_pending - done
-    print(f"Evidence step finished: done={done}/{total_pending} | left={remaining} | elapsed={elapsed/60:.1f}m")
+    logger.info("Evidence step finished: done=%d/%d | left=%d | elapsed=%.1fm", done, total_pending, remaining, elapsed / 60)
     return df
 
 
-# -----------------------------
-# Step 3: MeSH annotation from PMIDs
-# -----------------------------
 def extract_unique_pmids(df: pd.DataFrame, cols: list[str]) -> list[str]:
     pmids = set()
     for col in cols:
@@ -474,9 +445,6 @@ def annotate_mesh(df: pd.DataFrame, mesh_batch_size: int) -> pd.DataFrame:
     return df
 
 
-# -----------------------------
-# Step 4: GWAS + directionality
-# -----------------------------
 def add_gwas_and_directionality(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
@@ -490,7 +458,6 @@ def add_gwas_and_directionality(df: pd.DataFrame) -> pd.DataFrame:
 
     df["GWAS_genes_in_path"] = df.apply(gwas_in_path, axis=1)
 
-    # Repo rule (2-hop): Yes if stmt_type_2 agrees with knockdown direction
     df["directionality"] = "No"
     lfc = pd.to_numeric(df["logfoldchange"], errors="coerce")
     df.loc[
@@ -502,14 +469,10 @@ def add_gwas_and_directionality(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# -----------------------------
-# Step 5: stmt hashes + INDRA HTML urls (no HtmlAssembler output)
-# -----------------------------
 def find_matching_statement(stmts, target_belief: float, target_evcnt: int):
     best = None
     best_diff = float("inf")
 
-    # Pass 1: exact evidence_count match and closest belief
     for stmt in stmts:
         evcnt = len(stmt.evidence or [])
         if evcnt == target_evcnt:
@@ -520,7 +483,6 @@ def find_matching_statement(stmts, target_belief: float, target_evcnt: int):
     if best:
         return best
 
-    # Pass 2: closest belief
     for stmt in stmts:
         diff = abs((stmt.belief or 0.0) - target_belief)
         if diff < best_diff:
@@ -529,7 +491,13 @@ def find_matching_statement(stmts, target_belief: float, target_evcnt: int):
     return best
 
 
-def add_stmt_hash_and_urls(df: pd.DataFrame, out_csv: str, max_workers: int, checkpoint_every: int, resume: bool) -> pd.DataFrame:
+def add_stmt_hash_and_urls(
+    df: pd.DataFrame,
+    out_csv: str,
+    max_workers: int,
+    checkpoint_every: int,
+    resume: bool,
+) -> pd.DataFrame:
     df = df.copy()
     for col in ["hop1_hash", "hop1_indra_url", "hop2_hash", "hop2_indra_url"]:
         if col not in df.columns:
@@ -544,10 +512,13 @@ def add_stmt_hash_and_urls(df: pd.DataFrame, out_csv: str, max_workers: int, che
     pending = [i for i in df.index if (row_needs(i) if resume else True)]
     total_pending = len(pending)
     if total_pending == 0:
-        print("Hash step: nothing to do (all rows already filled).")
+        logger.info("Hash step: nothing to do (all rows already filled).")
         return df
 
-    print(f"Hash step: {total_pending}/{len(df)} rows pending | workers={max_workers} | checkpoint_every={checkpoint_every}")
+    logger.info(
+        "Hash step: %d/%d rows pending | workers=%d | checkpoint_every=%d",
+        total_pending, len(df), max_workers, checkpoint_every,
+    )
 
     start_time = time.time()
 
@@ -604,35 +575,33 @@ def add_stmt_hash_and_urls(df: pd.DataFrame, out_csv: str, max_workers: int, che
                 eta_secs = (remaining / rate) if rate > 0 else float("inf")
 
                 df.to_csv(out_csv, index=False)
-                print(
-                    f"[checkpoint:hash] done={done}/{total_pending} | left={remaining} | "
-                    f"elapsed={elapsed/60:.1f}m | rate={rate:.2f} rows/s | ETA={eta_secs/60:.1f}m | saved={out_csv}"
+                logger.info(
+                    "[checkpoint:hash] done=%d/%d | left=%d | "
+                    "elapsed=%.1fm | rate=%.2f rows/s | ETA=%.1fm | saved=%s",
+                    done, total_pending, remaining,
+                    elapsed / 60, rate, eta_secs / 60, out_csv,
                 )
 
     elapsed = time.time() - start_time
     remaining = total_pending - done
-    print(f"Hash step finished: done={done}/{total_pending} | left={remaining} | elapsed={elapsed/60:.1f}m")
+    logger.info("Hash step finished: done=%d/%d | left=%d | elapsed=%.1fm", done, total_pending, remaining, elapsed / 60)
     return df
 
 
-# Main
 def main():
     ap = argparse.ArgumentParser(
-        description="One-stop 2-hop pipeline: 2hop -> endothelial intermediate filter -> evidence/pmids -> mesh -> gwas/directionality -> stmt hash + html urls"
+        description="One-stop 2-hop pipeline: 2hop -> endothelial intermediate filter -> "
+                    "evidence/pmids -> mesh -> gwas/directionality -> stmt hash + html urls",
     )
 
-    # OPTIONAL: if omitted, we default to all GWAS genes defined at top of file
     ap.add_argument(
-        "--genes",
-        nargs="+",
-        required=False,
-        help="Optional. Source genes to run (must have <gene>_vs_control.csv). If omitted, runs all GWAS_GENES."
+        "--genes", nargs="+", required=False,
+        help="Source genes to run. If omitted, runs all GWAS_GENES.",
     )
-    ap.add_argument("--de-dir", required=True, help="Folder containing DEG CSVs: <gene>_vs_control.csv")
+    ap.add_argument("--deg-dir", required=True, help="Folder containing DEG CSVs")
     ap.add_argument("--endothelial-list", required=True, help="CSV with column 'gene' listing allowed intermediates")
     ap.add_argument("--out-csv", required=True, help="Output CSV path")
 
-    # Defaults to RAW p-values because --prefer-fdr is off unless explicitly provided
     ap.add_argument("--p-threshold", type=float, default=0.05)
     ap.add_argument("--prefer-fdr", action="store_true")
 
@@ -649,29 +618,26 @@ def main():
 
     args = ap.parse_args()
 
-    # Default to ALL GWAS genes if user didn't provide --genes
     if not args.genes:
         args.genes = sorted(GWAS_GENES)
-        print(f"No --genes provided; defaulting to all GWAS genes: {len(args.genes)}")
+        logger.info("No --genes provided; defaulting to all GWAS genes: %d", len(args.genes))
 
     t0 = time.time()
     os.makedirs(os.path.dirname(args.out_csv) or ".", exist_ok=True)
 
     allowed_intermediates = load_endothelial_gene_set(args.endothelial_list)
-    print(f"Loaded endothelial intermediate whitelist: {len(allowed_intermediates):,} genes")
+    logger.info("Loaded endothelial intermediate whitelist: %d genes", len(allowed_intermediates))
 
-    # Resume load (optional)
     if args.resume and os.path.exists(args.out_csv):
         df = pd.read_csv(args.out_csv)
-        print(f"Resuming from existing output: {args.out_csv} (rows={len(df):,})")
+        logger.info("Resuming from existing output: %s (rows=%d)", args.out_csv, len(df))
     else:
-        # 1) 2-hop extraction (parallel over genes)
         rows = []
 
         def gene_job(g):
             return g, run_2hop_for_gene(
                 gene=g,
-                de_dir=args.de_dir,
+                deg_dir=args.deg_dir,
                 p_threshold=args.p_threshold,
                 prefer_fdr=args.prefer_fdr,
                 batch_size=args.twohop_batch_size,
@@ -682,24 +648,22 @@ def main():
             futures = [ex.submit(gene_job, g) for g in args.genes]
             for fut in as_completed(futures):
                 g, res = fut.result()
-                print(f"2-hop done for {g}: kept {len(res)} rows (after endothelial intermediate filter)")
+                logger.info("2-hop done for %s: kept %d rows (after endothelial intermediate filter)", g, len(res))
                 rows.extend(res)
 
         df = pd.DataFrame(rows)
         if df.empty:
-            print("No 2-hop rows produced after endothelial intermediate filtering. Exiting.")
+            logger.warning("No 2-hop rows produced after endothelial intermediate filtering. Exiting.")
             return
 
-        # Normalize symbols (helps evidence/hgnc mapping)
         df["source"] = df["source"].apply(normalize_gene_symbol)
         df["intermediate"] = df["intermediate"].apply(normalize_gene_symbol)
         df["target"] = df["target"].apply(normalize_gene_symbol)
 
         df.to_csv(args.out_csv, index=False)
-        print(f"Saved initial 2-hop output: {args.out_csv} (rows={len(df):,})")
+        logger.info("Saved initial 2-hop output: %s (rows=%d)", args.out_csv, len(df))
 
-    # 2) evidence + pmids (formatted) with checkpointing
-    print("\n=== evidence + pmids (formatted) ===")
+    logger.info("=== evidence + pmids (formatted) ===")
     df = enrich_with_evidence(
         df=df,
         out_csv=args.out_csv,
@@ -709,18 +673,15 @@ def main():
     )
     df.to_csv(args.out_csv, index=False)
 
-    # 3) mesh
-    print("\n=== mesh annotation ===")
+    logger.info("=== mesh annotation ===")
     df = annotate_mesh(df, mesh_batch_size=args.mesh_batch_size)
     df.to_csv(args.out_csv, index=False)
 
-    # 4) gwas + directionality
-    print("\n=== gwas + directionality ===")
+    logger.info("=== gwas + directionality ===")
     df = add_gwas_and_directionality(df)
     df.to_csv(args.out_csv, index=False)
 
-    # 5) stmt hash + urls
-    print("\n=== stmt hashes + indra html urls ===")
+    logger.info("=== stmt hashes + indra html urls ===")
     df = add_stmt_hash_and_urls(
         df=df,
         out_csv=args.out_csv,
@@ -730,10 +691,11 @@ def main():
     )
     df.to_csv(args.out_csv, index=False)
 
-    print(f"\nDONE. Final CSV: {args.out_csv}")
-    print(f"Rows: {len(df):,}")
-    print(f"Total time: {(time.time() - t0)/60:.1f} min")
+    logger.info("DONE. Final CSV: %s", args.out_csv)
+    logger.info("Rows: %d", len(df))
+    logger.info("Total time: %.1f min", (time.time() - t0) / 60)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

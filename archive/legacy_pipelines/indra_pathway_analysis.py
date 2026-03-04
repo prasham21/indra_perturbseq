@@ -1,3 +1,6 @@
+"""Legacy script: indra_pathway_analysis."""
+from __future__ import annotations
+
 import pandas as pd
 import scanpy as sc
 import numpy as np
@@ -5,6 +8,10 @@ import time
 from typing import List, Dict, Optional
 import warnings
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 warnings.filterwarnings('ignore')
 
 from indra.sources import indra_db_rest
@@ -39,11 +46,11 @@ class DirectPathwayAnalyzer:
 
         # Get successful targets
         self.successful_targets = self.target_validation_df[
-            self.target_validation_df['Karen_Flag'] == 'Use_for_analysis'
+            self.target_validation_df['analysis_flag'] == 'Use_for_analysis'
             ]['Gene'].tolist()
 
-        print(f"Loaded {len(self.successful_targets)} successful knockdown targets")
-        print(f"AnnData shape: {self.adata_de.shape}")
+        logger.info("Loaded %s successful knockdown targets", len(self.successful_targets))
+        logger.info("AnnData shape: %s", self.adata_de.shape)
 
     def get_affected_genes(self, target_gene: str,
                            significance_threshold: float = 0.05,
@@ -67,11 +74,11 @@ class DirectPathwayAnalyzer:
                     downstream_genes['pvals_adj'] < thresh
                     ]
                 if len(significant_genes) >= 10:  # Need reasonable number of genes
-                    print(f"  Using p < {thresh} threshold ({len(significant_genes)} genes)")
+                    logger.info("  Using p < %s threshold (%s genes)", thresh, len(significant_genes))
                     break
 
             if significant_genes.empty:
-                print(f"  No significant genes found for {target_gene}")
+                logger.info("  No significant genes found for %s", target_gene)
                 return []
 
             # Sort by significance and limit if specified
@@ -90,11 +97,11 @@ class DirectPathwayAnalyzer:
                         'effect_direction': 'increase' if row['logfoldchanges'] > 0 else 'decrease'
                     })
 
-            print(f"  Found {len(affected_genes)} clean affected genes")
+            logger.info("  Found %s clean affected genes", len(affected_genes))
             return affected_genes
 
         except Exception as e:
-            print(f"Error getting affected genes for {target_gene}: {e}")
+            logger.info("Error getting affected genes for %s: %s", target_gene, e)
             return []
 
     def query_direct_pathways_optimized(self, source_gene: str, target_gene: str) -> List[Dict]:
@@ -103,7 +110,7 @@ class DirectPathwayAnalyzer:
         target_gene = clean_gene_name(target_gene) or target_gene.upper()
 
         if is_unusual_gene_name(target_gene):
-            print(f"⚠️ Unusual gene name: {target_gene}")
+            logger.info(" Unusual gene name: %s", target_gene)
             return []
 
         try:
@@ -145,13 +152,13 @@ class DirectPathwayAnalyzer:
             return pathways
 
         except Exception as e:
-            print(f"Error querying INDRA for {source_gene} -> {target_gene}: {e}")
+            logger.info("Error querying INDRA for %s -> %s: %s", source_gene, target_gene, e)
             return []
 
     def analyze_single_perturbation(self, target_gene: str, max_genes: int = 50) -> pd.DataFrame:
         """Analyze direct pathways only for a single perturbation"""
         target_gene = clean_gene_name(target_gene) or target_gene.upper()
-        print(f"\n🔍 Analyzing DIRECT pathways for {target_gene}")
+        logger.info("\n Analyzing DIRECT pathways for %s", target_gene)
 
         affected_genes = self.get_affected_genes(target_gene, max_genes=max_genes)
         if not affected_genes:
@@ -160,11 +167,11 @@ class DirectPathwayAnalyzer:
         all_pathways = []
         successful_queries = 0
 
-        print(f"Querying direct pathways for {len(affected_genes)} affected genes...")
+        logger.info("Querying direct pathways for %s affected genes...", len(affected_genes))
 
         for i, affected_gene_info in enumerate(affected_genes):
             affected_gene = affected_gene_info['gene']
-            print(f"  ({i + 1}/{len(affected_genes)}) {target_gene} → {affected_gene}")
+            logger.info("  (%s/%s) %s → %s", i + 1, len(affected_genes), target_gene, affected_gene)
 
             # ONLY direct pathways - no multi-hop
             direct_pathways = self.query_direct_pathways_optimized(target_gene, affected_gene)
@@ -189,12 +196,11 @@ class DirectPathwayAnalyzer:
 
             if direct_pathways:
                 successful_queries += 1
-                print(f"    ✓ Found {len(direct_pathways)} pathways")
+                logger.info("     Found %s pathways", len(direct_pathways))
             else:
-                print(f"    ✗ No direct pathways found")
+                logger.info("     No direct pathways found")
 
-        print(
-            f"  ✅ Completed {target_gene}: {successful_queries}/{len(affected_genes)} genes with pathways, {len(all_pathways)} total pathways")
+        logger.info(f"   Completed {target_gene}: {successful_queries}/{len(affected_genes)} genes with pathways, {len(all_pathways)} total pathways")
         return pd.DataFrame(all_pathways)
 
     def _check_consistency(self, literature_effect: str, observed_effect: str) -> bool:
@@ -217,100 +223,99 @@ class DirectPathwayAnalyzer:
         results = []
         targets = self.successful_targets[:max_perturbations] if max_perturbations else self.successful_targets
 
-        print(f"\n{'=' * 60}")
-        print(f"STARTING DIRECT PATHWAY ANALYSIS")
-        print(f"{'=' * 60}")
-        print(f"Perturbations to analyze: {len(targets)}")
-        print(f"Max genes per perturbation: {max_genes_per_perturbation if max_genes_per_perturbation else 'ALL'}")
+        logger.info("\n%s", '=' * 60)
+        logger.info("STARTING DIRECT PATHWAY ANALYSIS")
+        logger.info("%s", '=' * 60)
+        logger.info("Perturbations to analyze: %s", len(targets))
+        logger.info("Max genes per perturbation: %s", max_genes_per_perturbation if max_genes_per_perturbation else 'ALL')
 
         # Handle None case for estimation
         if max_genes_per_perturbation is not None:
             estimated_queries = len(targets) * max_genes_per_perturbation
             estimated_time = estimated_queries * 2 / 60
-            print(f"Expected total queries: ~{estimated_queries}")
-            print(f"Estimated time: {estimated_time:.1f} minutes")
+            logger.info("Expected total queries: ~%s", estimated_queries)
+            logger.info("Estimated time: %.1f minutes", estimated_time)
         else:
-            print(f"Expected total queries: ~{len(targets)} perturbations × ALL affected genes")
-            print(f"Estimated time: 10-20 minutes (will analyze all affected genes)")
+            logger.info("Expected total queries: ~%s perturbations × ALL affected genes", len(targets))
+            logger.info("Estimated time: 10-20 minutes (will analyze all affected genes)")
 
         for i, gene in enumerate(tqdm(targets, desc="Analyzing perturbations")):
             try:
-                print(f"\n--- Perturbation {i + 1}/{len(targets)}: {gene} ---")
+                logger.info("\n--- Perturbation %s/%s: %s ---", i + 1, len(targets), gene)
                 df = self.analyze_single_perturbation(gene, max_genes=max_genes_per_perturbation)
 
                 if not df.empty:
                     results.append(df)
-                    print(f"  ✅ {gene}: Added {len(df)} pathways")
+                    logger.info("   %s: Added %s pathways", gene, len(df))
                 else:
-                    print(f"  ⚠️ {gene}: No pathways found")
+                    logger.info("   %s: No pathways found", gene)
 
             except Exception as e:
-                print(f"❌ Error on {gene}: {e}")
+                logger.info(" Error on %s: %s", gene, e)
                 continue
 
         if results:
             final_df = pd.concat(results, ignore_index=True)
-            print(f"\n🎉 Analysis complete! Total pathways discovered: {len(final_df)}")
+            logger.info("\n Analysis complete! Total pathways discovered: %s", len(final_df))
             return final_df
         else:
-            print("⚠️ No results generated")
+            logger.info(" No results generated")
             return pd.DataFrame()
 
     def generate_analysis_summary(self, results_df: pd.DataFrame) -> None:
         """Generate comprehensive analysis summary with consistency analysis"""
         if results_df.empty:
-            print("No results to summarize")
+            logger.info("No results to summarize")
             return
 
-        print(f"\n{'=' * 60}")
-        print("DIRECT PATHWAY ANALYSIS SUMMARY")
-        print(f"{'=' * 60}")
+        logger.info("\n%s", '=' * 60)
+        logger.info("DIRECT PATHWAY ANALYSIS SUMMARY")
+        logger.info("%s", '=' * 60)
 
-        print(f"Total direct pathways discovered: {len(results_df)}")
-        print(f"Unique perturbations analyzed: {results_df['perturbation_gene'].nunique()}")
-        print(f"Unique affected genes: {results_df['affected_gene'].nunique()}")
+        logger.info("Total direct pathways discovered: %s", len(results_df))
+        logger.info("Unique perturbations analyzed: %s", results_df['perturbation_gene'].nunique())
+        logger.info("Unique affected genes: %s", results_df['affected_gene'].nunique())
 
         # Success rate by perturbation
         success_by_perturbation = results_df.groupby('perturbation_gene').size().sort_values(ascending=False)
-        print(f"\nTop perturbations by pathway count:")
+        logger.info("\nTop perturbations by pathway count:")
         for gene, count in success_by_perturbation.head(10).items():
-            print(f"  {gene}: {count} pathways")
+            logger.info("  %s: %s pathways", gene, count)
 
         if 'final_edge_type' in results_df.columns:
-            print(f"\nLiterature relationship types:")
+            logger.info("\nLiterature relationship types:")
             for edge_type, count in results_df['final_edge_type'].value_counts().items():
-                print(f"  {edge_type}: {count}")
+                logger.info("  %s: %s", edge_type, count)
 
         if 'literature_experiment_consistent' in results_df.columns:
             consistent_count = results_df['literature_experiment_consistent'].sum()
             total_count = len(results_df)
             consistency_rate = consistent_count / total_count * 100
-            print(f"\nLiterature-Experiment Consistency:")
-            print(f"  Consistent pathways: {consistent_count}/{total_count} ({consistency_rate:.1f}%)")
-            print(
-                f"  Inconsistent pathways: {total_count - consistent_count}/{total_count} ({100 - consistency_rate:.1f}%)")
+            logger.info("\nLiterature-Experiment Consistency:")
+            logger.info("  Consistent pathways: %s/%s (%.1f%%)", consistent_count, total_count, consistency_rate)
+            logger.info(f"  Inconsistent pathways: {total_count - consistent_count}/{total_count} ({100 - consistency_rate:.1f}%)")
 
         if 'evidence_count' in results_df.columns:
-            print(f"\nEvidence strength distribution:")
+            logger.info("\nEvidence strength distribution:")
             evidence_stats = results_df['evidence_count'].describe()
-            print(f"  Mean evidence per pathway: {evidence_stats['mean']:.1f}")
-            print(f"  Median evidence per pathway: {evidence_stats['50%']:.1f}")
-            print(f"  Max evidence per pathway: {int(evidence_stats['max'])}")
+            logger.info("  Mean evidence per pathway: %.1f", evidence_stats['mean'])
+            logger.info("  Median evidence per pathway: %.1f", evidence_stats['50%'])
+            logger.info("  Max evidence per pathway: %s", int(evidence_stats['max']))
 
 
 def main():
     """Main function for TP53 complete direct pathway analysis"""
-    target_validation_path = "/Users/prashammarfatia/Downloads/karen_target_validation.csv"
-    adata_backup_path = "/Users/prashammarfatia/Downloads/adata_de_backup.h5ad"
-    output_path = "/Users/prashammarfatia/Downloads/tp53_all_direct_pathways_results.csv"
+    target_validation_path = "target_validation.csv"
+    adata_backup_path = "adata_de_backup.h5ad"
+    output_path = "tp53_all_direct_pathways_results.csv"
 
     try:
         analyzer = DirectPathwayAnalyzer(target_validation_path, adata_backup_path)
 
         # Focus specifically on TP53 - the strongest perturbation
         analyzer.successful_targets = ['TP53']
-        print(f"\n🎯 COMPLETE TP53 DIRECT PATHWAY ANALYSIS")
-        print(f"Analyzing ALL affected genes for TP53...")
+        logger.info("\n COMPLETE TP53 DIRECT PATHWAY ANALYSIS")
+        logger.info("Analyzing ALL affected genes for TP53...")
 
         results = analyzer.analyze_all_perturbations(
             max_perturbations=1,  # Just TP53
@@ -319,72 +324,70 @@ def main():
 
         if not results.empty:
             results.to_csv(output_path, index=False)
-            print(f"\n✅ TP53 Complete Results saved to: {output_path}")
+            logger.info("\n TP53 Complete Results saved to: %s", output_path)
             analyzer.generate_analysis_summary(results)
 
             # TP53-specific analysis
-            print(f"\n{'=' * 60}")
-            print(f"TP53 COMPREHENSIVE PATHWAY COVERAGE ANALYSIS")
-            print(f"{'=' * 60}")
+            logger.info("\n%s", '=' * 60)
+            logger.info("TP53 COMPREHENSIVE PATHWAY COVERAGE ANALYSIS")
+            logger.info("%s", '=' * 60)
 
             total_affected_genes = len(analyzer.get_affected_genes('TP53', max_genes=None))
             pathways_found = len(results)
             genes_with_pathways = results['affected_gene'].nunique()
             coverage_rate = (genes_with_pathways / total_affected_genes) * 100 if total_affected_genes > 0 else 0
 
-            print(f"📊 TP53 Coverage Statistics:")
-            print(f"  Total TP53 affected genes: {total_affected_genes}")
-            print(f"  Genes with direct pathways: {genes_with_pathways}")
-            print(f"  Coverage rate: {coverage_rate:.1f}%")
-            print(f"  Total direct pathways found: {pathways_found}")
-            print(
-                f"  Avg pathways per covered gene: {pathways_found / genes_with_pathways:.1f}" if genes_with_pathways > 0 else "  Avg pathways per covered gene: 0")
+            logger.info(" TP53 Coverage Statistics:")
+            logger.info("  Total TP53 affected genes: %s", total_affected_genes)
+            logger.info("  Genes with direct pathways: %s", genes_with_pathways)
+            logger.info("  Coverage rate: %.1f%%", coverage_rate)
+            logger.info("  Total direct pathways found: %s", pathways_found)
+            logger.info(f"  Avg pathways per covered gene: {pathways_found / genes_with_pathways:.1f}" if genes_with_pathways > 0 else "  Avg pathways per covered gene: 0")
 
             # Show top TP53 targets by pathway count
             if not results.empty:
                 pathway_counts = results['affected_gene'].value_counts()
-                print(f"\n🎯 Top TP53 targets by pathway count:")
+                logger.info("\n Top TP53 targets by pathway count:")
                 for gene, count in pathway_counts.head(10).items():
-                    print(f"  TP53 → {gene}: {count} pathways")
+                    logger.info("  TP53 → %s: %s pathways", gene, count)
 
                 # Show sample high-confidence pathways
                 high_evidence = results[results['evidence_count'] >= 3].sort_values('evidence_count', ascending=False)
                 if not high_evidence.empty:
-                    print(f"\n⭐ High-evidence TP53 pathways (≥3 pieces of evidence):")
+                    logger.info("\n High-evidence TP53 pathways (≥3 pieces of evidence):")
                     for _, row in high_evidence.head(10).iterrows():
-                        print(f"  {row['pathway_string']}: {row['evidence_count']} evidence, {row['final_edge_type']}")
+                        logger.info("  %s: %s evidence, %s", row['pathway_string'], row['evidence_count'], row['final_edge_type'])
 
                 # Consistency analysis for TP53
                 consistent_pathways = results[results['literature_experiment_consistent'] == True]
                 if not consistent_pathways.empty:
                     consistency_rate = len(consistent_pathways) / len(results) * 100
-                    print(f"\n✅ TP53 Consistency Analysis:")
-                    print(f"  Consistent pathways: {len(consistent_pathways)}/{len(results)} ({consistency_rate:.1f}%)")
-                    print(f"  Sample consistent pathways:")
+                    logger.info("\n TP53 Consistency Analysis:")
+                    logger.info("  Consistent pathways: %s/%s (%.1f%%)", len(consistent_pathways), len(results), consistency_rate)
+                    logger.info("  Sample consistent pathways:")
                     for _, row in consistent_pathways.head(5).iterrows():
                         direction = "↑" if row['final_edge_type'] == 'increaseamount' else "↓"
                         obs_direction = "↓" if row['observed_effect'] == 'decrease' else "↑"
-                        print(
-                            f"    TP53 {direction} {row['affected_gene']} | Observed: {obs_direction} (p={row['observed_pvalue']:.2e})")
+                        logger.info(f"    TP53 {direction} {row['affected_gene']} | Observed: {obs_direction} (p={row['observed_pvalue']:.2e})")
 
             # Show sample results
-            print(f"\nSample TP53 pathways found:")
+            logger.info("\nSample TP53 pathways found:")
             sample_cols = ['perturbation_gene', 'affected_gene', 'pathway_string',
                            'final_edge_type', 'evidence_count', 'literature_experiment_consistent']
             if all(col in results.columns for col in sample_cols):
-                print(results[sample_cols].head(15).to_string(index=False))
+                logger.info(results[sample_cols].head(15).to_string(index=False))
         else:
-            print("⚠️ No TP53 pathways discovered.")
+            logger.info(" No TP53 pathways discovered.")
             # Debug information
             affected_genes = analyzer.get_affected_genes('TP53', max_genes=None)
-            print(f"TP53 has {len(affected_genes)} affected genes but no literature pathways found")
+            logger.info("TP53 has %s affected genes but no literature pathways found", len(affected_genes))
             if affected_genes:
-                print("Sample affected genes:")
+                logger.info("Sample affected genes:")
                 for gene_info in affected_genes[:10]:
-                    print(f"  {gene_info['gene']}: logFC={gene_info['logfc']:.2f}, p={gene_info['pvalue']:.2e}")
+                    logger.info("  %s: logFC=%.2f, p=%.2e", gene_info['gene'], gene_info['logfc'], gene_info['pvalue'])
 
     except Exception as e:
-        print(f"TP53 analysis failed: {e}")
+        logger.info("TP53 analysis failed: %s", e)
         raise
 
 

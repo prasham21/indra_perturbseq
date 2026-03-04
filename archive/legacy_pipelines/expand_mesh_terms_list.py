@@ -1,23 +1,28 @@
+"""Legacy script: expand MeSH terms list with mechanistic seeds."""
+from __future__ import annotations
+
+import argparse
+
 import pandas as pd
 from indra_cogex.client.neo4j_client import Neo4jClient
 
-# ========= CONFIG =========
-EXISTING_CSV = "/Users/prashammarfatia/Downloads/comprehensive_mesh_list_with_origin.csv"
-OUTPUT_CSV = "/Users/prashammarfatia/Downloads/comprehensive_mesh_list_EXPANDED_.csv"
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 CHILD_DEPTH = 4
 NEW_ORIGIN = "CAD Mechanistic"
 
-# Broad terms to drop if they ever show up as children
 BROAD_STOPLIST = {
-    "D006801",  # Humans
-    "D000818",  # Animals
-    "D002477",  # Cells
-    "D005260",  # Enzymes
-    "D010801",  # Proteins
-    "D000740",  # Anatomy
+    "D006801",
+    "D000818",
+    "D002477",
+    "D005260",
+    "D010801",
+    "D000740",
 }
 
-# 26 mechanistic MeSH terms (ID → Name)
 MECHANISTIC_SEEDS = {
     "D058506": "Coronary Artery Disease",
     "D001161": "Atherosclerosis",
@@ -86,27 +91,31 @@ def pretty_print_table(df: pd.DataFrame):
     widths = {c: max(len(c), df[c].map(len).max()) for c in cols}
     fmt = "  ".join(f"{{:{widths[c]}}}" for c in cols)
 
-    print(fmt.format(*cols))
-    print("  ".join("-" * widths[c] for c in cols))
+    logger.info(fmt.format(*cols))
+    logger.info("  ".join("-" * widths[c] for c in cols))
 
     for _, row in df.iterrows():
-        print(fmt.format(row["mesh_id"], row["mesh_name"],
-                         row["origin"], row["child_of"]))
+        logger.info(fmt.format(row["mesh_id"], row["mesh_name"],
+                               row["origin"], row["child_of"]))
 
 
 def main():
-    print(f"📥 Loading existing list: {EXISTING_CSV}")
-    df_old = pd.read_csv(EXISTING_CSV, dtype=str).fillna("")
-    print(f"   → {len(df_old)} rows")
+    ap = argparse.ArgumentParser(description="Expand MeSH terms list with mechanistic seeds.")
+    ap.add_argument("--existing-csv", required=True, help="Path to existing comprehensive MeSH list CSV.")
+    ap.add_argument("--output-csv", required=True, help="Path for expanded output CSV.")
+    ap.add_argument("--child-depth", type=int, default=CHILD_DEPTH, help="Depth for child expansion.")
+    args = ap.parse_args()
+
+    logger.info("Loading existing list: %s", args.existing_csv)
+    df_old = pd.read_csv(args.existing_csv, dtype=str).fillna("")
+    logger.info("Existing rows: %d", len(df_old))
 
     client = Neo4jClient()
 
-    print(f"\n🔎 Expanding the 26 mechanistic seeds (depth={CHILD_DEPTH})…\n")
+    logger.info("Expanding mechanistic seeds (depth=%d)...", args.child_depth)
     new_rows = []
 
     for mesh_id, mesh_name in MECHANISTIC_SEEDS.items():
-
-        # Parent
         new_rows.append({
             "mesh_id": mesh_id,
             "mesh_name": mesh_name,
@@ -114,9 +123,8 @@ def main():
             "child_of": "None"
         })
 
-        # Children
-        children = get_children_for_mesh_id(mesh_id, client, CHILD_DEPTH)
-        print(f"  {mesh_name} ({mesh_id}) → {len(children)} children")
+        children = get_children_for_mesh_id(mesh_id, client, args.child_depth)
+        logger.info("  %s (%s) -> %d children", mesh_name, mesh_id, len(children))
 
         for cid, cname in children:
             new_rows.append({
@@ -127,26 +135,22 @@ def main():
             })
 
     df_new = pd.DataFrame(new_rows).drop_duplicates()
-    print(f"\n🆕 New rows (seeds + children): {len(df_new)}")
+    logger.info("New rows (seeds + children): %d", len(df_new))
 
-    # Merge
     combined = pd.concat([df_old, df_new], ignore_index=True)
     combined_unique = combined.drop_duplicates(
         subset=["mesh_id", "mesh_name", "origin", "child_of"]
     ).reset_index(drop=True)
 
-    print("\n📊 Final statistics:")
-    print(f"   Old rows      : {len(df_old)}")
-    print(f"   New rows      : {len(df_new)}")
-    print(f"   Combined uniq : {len(combined_unique)}")
+    logger.info("Final statistics:")
+    logger.info("  Old rows      : %d", len(df_old))
+    logger.info("  New rows      : %d", len(df_new))
+    logger.info("  Combined uniq : %d", len(combined_unique))
 
-    # PRINT nicely
-    print("\n📋 Final Combined Table:\n")
     pretty_print_table(combined_unique)
 
-    # WRITE new CSV
-    combined_unique.to_csv(OUTPUT_CSV, index=False)
-    print(f"\n💾 Saved expanded comprehensive list to:\n   → {OUTPUT_CSV}\n")
+    combined_unique.to_csv(args.output_csv, index=False)
+    logger.info("Saved expanded comprehensive list to: %s", args.output_csv)
 
 
 if __name__ == "__main__":

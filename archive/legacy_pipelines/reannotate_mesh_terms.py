@@ -1,9 +1,18 @@
+"""Superseded legacy script for re-annotating MeSH terms from PMID columns.
+
+Refactored into src/indra_perturbseq/pipelines/.
+"""
+from __future__ import annotations
+
 import argparse
-import pandas as pd
+import logging
 import re
 
+import pandas as pd
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra_cogex.client import get_mesh_ids_for_pmids
+
+logger = logging.getLogger(__name__)
 
 
 def load_valid_mesh_ids(reference_csv: str) -> set[str]:
@@ -37,11 +46,10 @@ def parse_pmids_cell(x) -> list[str]:
 
 def batch_iter(lst, n):
     for i in range(0, len(lst), n):
-        yield lst[i:i+n]
+        yield lst[i:i + n]
 
 
 def build_mesh_id_to_name_for_ids(client: Neo4jClient, mesh_ids: list[str]) -> dict[str, str]:
-    # Only fetch names for IDs we actually saw (faster than downloading all mesh nodes)
     curies = [f"mesh:{mid}" for mid in mesh_ids]
     q = """
     UNWIND $ids AS mid
@@ -62,7 +70,13 @@ def build_mesh_id_to_name_for_ids(client: Neo4jClient, mesh_ids: list[str]) -> d
     return m
 
 
-def annotate_column(df: pd.DataFrame, pmid_col: str, pmid_to_mesh: dict, mesh_id_to_name: dict, valid_ids: set[str]) -> pd.Series:
+def annotate_column(
+    df: pd.DataFrame,
+    pmid_col: str,
+    pmid_to_mesh: dict,
+    mesh_id_to_name: dict,
+    valid_ids: set[str],
+) -> pd.Series:
     def f(cell):
         pmids = parse_pmids_cell(cell)
         mesh_ids = set()
@@ -80,13 +94,19 @@ def annotate_column(df: pd.DataFrame, pmid_col: str, pmid_to_mesh: dict, mesh_id
 
 
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(description="Re-annotate MeSH terms from PMID columns")
     ap.add_argument("--input", required=True)
     ap.add_argument("--reference", required=True)
     ap.add_argument("--output", required=True)
-    ap.add_argument("--pmid-cols", nargs="+", required=True, help="One or more PMID columns (e.g. pmids OR pmids_hop1 pmids_hop2)")
+    ap.add_argument(
+        "--pmid-cols", nargs="+", required=True,
+        help="One or more PMID columns (e.g. pmids OR pmids_hop1 pmids_hop2)",
+    )
     ap.add_argument("--batch-size", type=int, default=200)
-    ap.add_argument("--out-prefix", default="Annotated MeSH terms ", help="Prefix for new annotation columns")
+    ap.add_argument(
+        "--out-prefix", default="Annotated MeSH terms ",
+        help="Prefix for new annotation columns",
+    )
     args = ap.parse_args()
 
     df = pd.read_csv(args.input, low_memory=False)
@@ -95,23 +115,20 @@ def main():
             raise ValueError(f"Missing PMID column: {c}. Columns={df.columns.tolist()}")
 
     valid_ids = load_valid_mesh_ids(args.reference)
-    print(f"Loaded {len(valid_ids):,} valid MeSH IDs from reference")
+    logger.info("Loaded %d valid MeSH IDs from reference", len(valid_ids))
 
-    # 1) collect all PMIDs
     all_pmids = set()
     for c in args.pmid_cols:
         for v in df[c].tolist():
             all_pmids.update(parse_pmids_cell(v))
     all_pmids = sorted(all_pmids, key=lambda x: int(x))
-    print(f"Unique PMIDs found: {len(all_pmids):,}")
+    logger.info("Unique PMIDs found: %d", len(all_pmids))
 
-    # 2) fetch PMID -> MeSH IDs (unfiltered)
     client = Neo4jClient()
     pmid_to_mesh = {}
     for batch in batch_iter(all_pmids, args.batch_size):
         pmid_to_mesh.update(get_mesh_ids_for_pmids(batch, client=client))
 
-    # 3) collect unique MeSH IDs observed, fetch names for those only
     seen_mesh = set()
     for mids in pmid_to_mesh.values():
         for mid in (mids or []):
@@ -119,19 +136,19 @@ def main():
             if re.fullmatch(r"D\d{5,10}", mid_u):
                 seen_mesh.add(mid_u)
     seen_mesh = sorted(seen_mesh)
-    print(f"Unique MeSH descriptor IDs observed from PMIDs: {len(seen_mesh):,}")
+    logger.info("Unique MeSH descriptor IDs observed from PMIDs: %d", len(seen_mesh))
 
     mesh_id_to_name = build_mesh_id_to_name_for_ids(client, seen_mesh)
 
-    # 4) annotate (filtered to reference) into new columns
     for c in args.pmid_cols:
         out_col = (args.out_prefix + c).strip()
         df[out_col] = annotate_column(df, c, pmid_to_mesh, mesh_id_to_name, valid_ids)
-        print(f"Wrote filtered annotations column: {out_col}")
+        logger.info("Wrote filtered annotations column: %s", out_col)
 
     df.to_csv(args.output, index=False)
-    print(f"\nSaved: {args.output}")
+    logger.info("Saved: %s", args.output)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

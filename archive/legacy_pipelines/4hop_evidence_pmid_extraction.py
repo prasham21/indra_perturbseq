@@ -1,3 +1,8 @@
+"""Legacy script: 4hop_evidence_pmid_extraction."""
+from __future__ import annotations
+
+import argparse
+
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from indra_cogex.client.neo4j_client import Neo4jClient
@@ -9,14 +14,12 @@ import json
 import pickle
 from datetime import datetime
 
+
+logger = logging.getLogger(__name__)
 # Suppress noisy Cypher logs
 logging.getLogger().setLevel(logging.ERROR)
 
-# ==============================
 # CONFIGURATION
-# ==============================
-INPUT_CSV = "/Users/prashammarfatia/Downloads/indra_4hop_merged_final.csv"  # Input file
-OUTPUT_CSV = "/Users/prashammarfatia/Downloads/indra_4hop_with_evidence_and_pmids_.csv"
 CHECKPOINT_FILE = "4-hop_evidence_checkpoint.pkl"
 CHECKPOINT_EVERY = 10  # Save every N rows
 MAX_WORKERS = 6  # Parallel threads
@@ -28,25 +31,9 @@ client = Neo4jClient()
 IDENTIFIER_CACHE = {}
 
 
-# ==============================
 # IDENTIFIER PROCESSING
-# ==============================
 def process_identifier(agent_str, *, for_query=False):
-    """
-    Normalize or parse agent identifiers with caching.
-
-    Parameters
-    ----------
-    agent_str : str
-        Raw identifier from the CSV (e.g., 'hgnc:uniprot:P12345', 'TP53', 'FPLX:AKT').
-    for_query : bool
-        - If True: returns a tuple like ("UNIPROT", "P12345") for INDRA queries.
-        - If False: returns a cleaned string like "UNIPROT:P12345" for CSV output.
-
-    Returns
-    -------
-    str | tuple | None
-    """
+"""Normalize or parse agent identifiers with caching."""
     if not agent_str or pd.isna(agent_str):
         return None if for_query else agent_str
 
@@ -96,9 +83,7 @@ def process_identifier(agent_str, *, for_query=False):
     return result
 
 
-# ==============================
 # COMBINED EVIDENCE EXTRACTION
-# ==============================
 def extract_all_evidence(source_agent, target_agent, stmt_type):
     """
     Extract PMIDs, source databases, and evidence text for a given edge.
@@ -125,80 +110,7 @@ def extract_all_evidence(source_agent, target_agent, stmt_type):
         MATCH (e:Evidence {stmt_hash: stmt_hash})
         RETURN e.evidence
         LIMIT 100
-        """
-
-        results = client.query_tx(
-            query,
-            stmt_type=stmt_type,
-            source_id=source_query[1] if isinstance(source_query, tuple) else "",
-            source_name=source_agent if isinstance(source_agent, str) else "",
-            target_id=target_query[1] if isinstance(target_query, tuple) else "",
-            target_name=target_agent if isinstance(target_agent, str) else ""
-        )
-
-        pmids = []
-        sources = []
-        evidences = []
-
-        for result in results:
-            try:
-                evidence_data = json.loads(result[0])
-
-                # Extract PMID if available
-                if 'pmid' in evidence_data and evidence_data['pmid']:
-                    pmid = str(evidence_data['pmid'])
-                    if pmid and pmid != 'None':
-                        pmids.append(pmid)
-
-                # Extract source_api (database name)
-                if 'source_api' in evidence_data and evidence_data['source_api']:
-                    sources.append(evidence_data['source_api'])
-
-                # Extract text evidence
-                if 'text' in evidence_data and evidence_data['text']:
-                    text = evidence_data['text'].strip()
-                    if text:
-                        evidences.append(text)
-
-            except (json.JSONDecodeError, IndexError):
-                continue
-
-        # Build evidence text output
-        if evidences:
-            # Format numbered evidence texts (limit to MAX_EVIDENCES)
-            formatted_evidences = [
-                f"{idx}) {text}"
-                for idx, text in enumerate(evidences[:MAX_EVIDENCES], 1)
-            ]
-            evidence_text = "\n\n".join(formatted_evidences)
-        else:
-            # No text evidence - show database names instead
-            if sources:
-                unique_sources = list(set(sources))[:5]
-                evidence_text = f"Database: {', '.join(unique_sources)}"
-            else:
-                evidence_text = "Database evidence only"
-
-        return {
-            'evidence_text': evidence_text,
-            'pmids': list(set(pmids))[:10],  # Limit to 10 unique PMIDs
-            'sources': list(set(sources))[:5]  # Keep for internal use
-        }
-
-    except Exception as e:
-        print(f"Error extracting evidence for {source_agent} -> {target_agent}: {e}")
-        return {
-            'evidence_text': f"Error: {e}",
-            'pmids': [],
-            'sources': []
-        }
-
-
-# ==============================
-# ROW PROCESSING FOR 4-HOP
-# ==============================
-def process_4hop_row(idx, row):
-    """Process a single 4-hop CSV row: extract all evidence data for its 4 edges."""
+"""results = client.query_tx(."""
     try:
         # Extract all evidence for each edge
         edge1_evidence = extract_all_evidence(row["source"], row["intermediate_1"], row["stmt_type_1"])
@@ -218,7 +130,7 @@ def process_4hop_row(idx, row):
             'edge4_pmids': '; '.join(edge4_evidence['pmids'])
         }
     except Exception as e:
-        print(f"Error processing row {idx}: {e}")
+        logger.info("Error processing row %s: %s", idx, e)
         return {
             'idx': idx,
             'edge1_evidence_text': f"Error: {e}",
@@ -232,9 +144,7 @@ def process_4hop_row(idx, row):
         }
 
 
-# ==============================
 # CHECKPOINT MANAGEMENT
-# ==============================
 def save_checkpoint(df, processed_indices, checkpoint_file=CHECKPOINT_FILE):
     """Save checkpoint with current progress"""
     checkpoint_data = {
@@ -263,34 +173,37 @@ def load_checkpoint(checkpoint_file=CHECKPOINT_FILE):
                 data = pickle.load(f)
 
             saved_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(data['timestamp']))
-            print(f"Resuming from checkpoint saved at {saved_time}")
+            logger.info("Resuming from checkpoint saved at %s", saved_time)
 
             # Restore cache
             if 'identifier_cache' in data:
                 IDENTIFIER_CACHE = data['identifier_cache']
-                print(f"  Restored {len(IDENTIFIER_CACHE)} cached identifiers")
+                logger.info("  Restored %s cached identifiers", len(IDENTIFIER_CACHE))
 
             return data['dataframe'], data['processed_indices']
         except Exception as e:
-            print(f"Error loading checkpoint: {e}")
+            logger.info("Error loading checkpoint: %s", e)
             return None, set()
     return None, set()
 
 
-# ==============================
 # MAIN EXECUTION
-# ==============================
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--input-csv", default="indra_4hop_merged_final.csv", help="Path for args.input_csv.")
+    ap.add_argument("--output-csv", default="indra_4hop_with_evidence_and_pmids_.csv", help="Path for args.output_csv.")
+    args = ap.parse_args()
+
     start_time = time.time()
 
     # Load the 4-hop results
-    if not os.path.exists(INPUT_CSV):
-        print(f"Error: Input file {INPUT_CSV} not found!")
-        print("Please ensure the input file is in the current directory.")
+    if not os.path.exists(args.input_csv):
+        logger.info("Error: Input file %s not found!", args.input_csv)
+        logger.info("Please ensure the input file is in the current directory.")
         return
 
-    print(f"Loading 4-hop results from {INPUT_CSV}")
-    df = pd.read_csv(INPUT_CSV)
+    logger.info("Loading 4-hop results from %s", args.input_csv)
+    df = pd.read_csv(args.input_csv)
 
     # Add columns for evidence and PMIDs if not present
     new_columns = [
@@ -307,28 +220,28 @@ def main():
     if checkpoint_df is not None:
         # Update the dataframe with checkpoint data
         df.update(checkpoint_df)
-        print(f"  Resumed with {len(processed_indices)} rows already processed")
+        logger.info("  Resumed with %s rows already processed", len(processed_indices))
     else:
         processed_indices = set()
-        print("Starting fresh - no checkpoint found")
+        logger.info("Starting fresh - no checkpoint found")
 
     total_rows = len(df)
     rows_to_process = [i for i in range(total_rows) if i not in processed_indices]
 
-    print(f"\nProcessing evidence and PMIDs for 4-hop pathways")
-    print(f"  Total rows: {total_rows}")
-    print(f"  Already processed: {len(processed_indices)}")
-    print(f"  Remaining to process: {len(rows_to_process)}")
-    print(f"  Workers: {MAX_WORKERS}")
-    print(f"  Max evidences per edge: {MAX_EVIDENCES}")
-    print("=" * 70)
+    logger.info("\nProcessing evidence and PMIDs for 4-hop pathways")
+    logger.info("  Total rows: %s", total_rows)
+    logger.info("  Already processed: %s", len(processed_indices))
+    logger.info("  Remaining to process: %s", len(rows_to_process))
+    logger.info("  Workers: %s", MAX_WORKERS)
+    logger.info("  Max evidences per edge: %s", MAX_EVIDENCES)
+    logger.info("=" * 70)
 
     if len(rows_to_process) == 0:
-        print("All rows already processed!")
+        logger.info("All rows already processed!")
         # Reorder columns before final save
         df = reorder_columns(df)
-        df.to_csv(OUTPUT_CSV, index=False)
-        print(f"Results saved to: {OUTPUT_CSV}")
+        df.to_csv(args.output_csv, index=False)
+        logger.info("Results saved to: %s", args.output_csv)
         return
 
     # Process rows in parallel
@@ -359,25 +272,25 @@ def main():
                 rate = completed / (elapsed + 0.001)  # Avoid division by zero
                 eta = remaining / rate if rate > 0 else 0
 
-                print(f"\nProgress: {completed}/{total_rows} rows processed")
-                print(f"  Elapsed: {elapsed:.1f} min | ETA: {eta:.1f} min")
-                print(f"  Cache size: {len(IDENTIFIER_CACHE)} identifiers")
+                logger.info("\nProgress: %s/%s rows processed", completed, total_rows)
+                logger.info("  Elapsed: %.1f min | ETA: %.1f min", elapsed, eta)
+                logger.info("  Cache size: %s identifiers", len(IDENTIFIER_CACHE))
 
                 # Save checkpoint
                 intermediate_file = save_checkpoint(df, processed_indices)
-                print(f"  Checkpoint saved: {intermediate_file}")
+                logger.info("  Checkpoint saved: %s", intermediate_file)
 
     # Final cleanup: process intermediate names for readability
-    print("\nCleaning up intermediate node names...")
+    logger.info("\nCleaning up intermediate node names...")
     for col in ["intermediate_1", "intermediate_2", "intermediate_3"]:
         df[col] = df[col].apply(lambda x: process_identifier(x, for_query=False))
 
     # Reorder columns as requested
-    print("Reordering columns...")
+    logger.info("Reordering columns...")
     df = reorder_columns(df)
 
     # Final statistics
-    print("\nCalculating statistics...")
+    logger.info("\nCalculating statistics...")
     total_pmids = 0
     edges_with_pmids = 0
     edges_with_text = 0
@@ -401,7 +314,7 @@ def main():
                 total_pmids += len(str(pmids).split('; '))
 
     # Final save
-    df.to_csv(OUTPUT_CSV, index=False)
+    df.to_csv(args.output_csv, index=False)
 
     # Clean up checkpoint
     if os.path.exists(CHECKPOINT_FILE):
@@ -409,33 +322,23 @@ def main():
 
     # Final report
     total_time = (time.time() - start_time) / 60
-    print("\n" + "=" * 70)
-    print("EVIDENCE AND PMID EXTRACTION COMPLETE!")
-    print("=" * 70)
-    print(f"Processing Statistics:")
-    print(f"  Total 4-hop pathways: {total_rows}")
-    print(f"  Total edges: {total_rows * 4}")
-    print(f"  Edges with text evidence: {edges_with_text}")
-    print(f"  Edges with database evidence only: {edges_with_db_only}")
-    print(f"  Edges with PMIDs: {edges_with_pmids}")
-    print(f"  Total PMIDs extracted: ~{total_pmids}")
-    print(f"  Processing time: {total_time:.1f} minutes")
-    print(f"\nOutput file: {OUTPUT_CSV}")
-    print(f"File size: {os.path.getsize(OUTPUT_CSV) / (1024 * 1024):.1f} MB")
+    logger.info("\n" + "=" * 70)
+    logger.info("EVIDENCE AND PMID EXTRACTION COMPLETE!")
+    logger.info("=" * 70)
+    logger.info("Processing Statistics:")
+    logger.info("  Total 4-hop pathways: %s", total_rows)
+    logger.info("  Total edges: %s", total_rows * 4)
+    logger.info("  Edges with text evidence: %s", edges_with_text)
+    logger.info("  Edges with database evidence only: %s", edges_with_db_only)
+    logger.info("  Edges with PMIDs: %s", edges_with_pmids)
+    logger.info("  Total PMIDs extracted: ~%s", total_pmids)
+    logger.info("  Processing time: %.1f minutes", total_time)
+    logger.info("\nOutput file: %s", args.output_csv)
+    logger.info("File size: %.1f MB", os.path.getsize(args.output_csv) / (1024 * 1024))
 
 
 def reorder_columns(df):
-    """
-    Reorder columns in the desired format:
-    source, intermediate_1, intermediate_2, intermediate_3, target,
-    stmt_type_1, edge1_evidence_text, edge1_pmids,
-    stmt_type_2, edge2_evidence_text, edge2_pmids,
-    stmt_type_3, edge3_evidence_text, edge3_pmids,
-    stmt_type_4, edge4_evidence_text, edge4_pmids,
-    logfoldchange, pval,
-    belief_1, belief_2, belief_3, belief_4,
-    evidence_1, evidence_2, evidence_3, evidence_4
-    """
+"""Reorder columns in the desired format:."""
     column_order = [
         # Pathway nodes
         'source', 'intermediate_1', 'intermediate_2', 'intermediate_3', 'target',

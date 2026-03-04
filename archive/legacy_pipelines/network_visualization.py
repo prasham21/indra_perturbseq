@@ -1,20 +1,27 @@
+"""Legacy script: network_visualization."""
+from __future__ import annotations
+
 import pandas as pd
 import numpy as np
 import networkx as nx
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 
-OUTPUT_DIR = '/Users/prashammarfatia/Downloads/Evidence_Analysis'
+import logging
+
+
+logger = logging.getLogger(__name__)
+OUTPUT_DIR = 'Evidence_Analysis'
 
 
 def load_and_filter_top_pathways():
     """Load 3-hop data and get top 100 by p-value"""
-    hop3 = pd.read_csv('/Users/prashammarfatia/Downloads/indra_3hop_cleaned_results.csv')
+    hop3 = pd.read_csv('indra_3hop_cleaned_results.csv')
     hop3_clean = hop3[np.isfinite(hop3['pval']) & np.isfinite(hop3['logfoldchange'])].copy()
     top_100 = hop3_clean.nsmallest(100, 'pval')
 
-    print(f"Top 100 pathways by p-value:")
-    print(f"P-value range: {top_100['pval'].min():.2e} to {top_100['pval'].max():.2e}")
+    logger.info("Top 100 pathways by p-value:")
+    logger.info("P-value range: %.2e to %.2e", top_100['pval'].min(), top_100['pval'].max())
 
     return top_100
 
@@ -50,14 +57,14 @@ def build_network(top_pathways):
 
     intermediates = intermediates - source_targets
 
-    print(f"\nNetwork: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
+    logger.info("\nNetwork: %s nodes, %s edges", G.number_of_nodes(), G.number_of_edges())
 
     # Print top hubs
     degrees = dict(G.degree())
     top_hubs = sorted(degrees.items(), key=lambda x: x[1], reverse=True)[:10]
-    print("\nTop 10 hub proteins:")
+    logger.info("\nTop 10 hub proteins:")
     for node, deg in top_hubs:
-        print(f"  {node}: {deg} connections")
+        logger.info("  %s: %s connections", node, deg)
 
     return G, source_targets, intermediates
 
@@ -146,7 +153,7 @@ def create_enhanced_interactive_viz(G, source_targets, intermediates):
 
     output_path = f'{OUTPUT_DIR}/network_enhanced_interactive.html'
     fig.write_html(output_path)
-    print(f"\nHTML saved: {output_path}")
+    logger.info("\nHTML saved: %s", output_path)
     fig.show()
 
 
@@ -175,7 +182,7 @@ def create_static_png(G, source_targets, intermediates):
     plt.tight_layout()
     output_path = f'{OUTPUT_DIR}/network_static.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"PNG saved: {output_path}")
+    logger.info("PNG saved: %s", output_path)
     plt.close()
 
 
@@ -190,11 +197,11 @@ def export_csvs(G, source_targets, intermediates):
               'degree': G.degree(n)} for n in G.nodes()]
     pd.DataFrame(nodes).to_csv(f'{OUTPUT_DIR}/network_nodes.csv', index=False)
 
-    print(f"CSVs saved: network_edges.csv, network_nodes.csv")
+    logger.info("CSVs saved: network_edges.csv, network_nodes.csv")
 
 
 def main():
-    print("Creating network visualization...")
+    logger.info("Creating network visualization...")
     top_pathways = load_and_filter_top_pathways()
     G, source_targets, intermediates = build_network(top_pathways)
 
@@ -202,7 +209,7 @@ def main():
     create_static_png(G, source_targets, intermediates)
     export_csvs(G, source_targets, intermediates)
 
-    print("\nAll files generated!")
+    logger.info("\nAll files generated!")
 
 
 if __name__ == "__main__":

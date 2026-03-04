@@ -1,3 +1,7 @@
+"""Legacy script: omnipath_client_1hop."""
+from __future__ import annotations
+
+import argparse
 import os
 import time
 import pandas as pd
@@ -5,10 +9,14 @@ import networkx as nx
 import omnipath as op
 from indra.databases import uniprot_client, hgnc_client
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 CACHE_FILE = "omnipath_hgnc.parquet"
-INPUT_DIR = "/Users/prashammarfatia/Downloads/de_results_per_gene"
-MANIFEST = "/Users/prashammarfatia/Downloads/target_validation_expanded.csv"
+INPUT_DIR = "de_results_per_gene"
+MANIFEST = "target_validation_expanded.csv"
 OUTPUT_FILE = "omnipath_1hop_all_perturbations.csv"
 
 
@@ -37,7 +45,7 @@ def fetch_omnipath_graph(force_reload: bool = False) -> nx.DiGraph:
     if os.path.exists(CACHE_FILE) and not force_reload:
         df = pd.read_parquet(CACHE_FILE)
     else:
-        print("Downloading OmniPath interactions...")
+        logger.info("Downloading OmniPath interactions...")
         df = op.interactions.OmniPath.get()
         df = df[["source", "target", "is_stimulation", "is_inhibition"]].dropna()
 
@@ -49,7 +57,7 @@ def fetch_omnipath_graph(force_reload: bool = False) -> nx.DiGraph:
         df = df.dropna(subset=["source", "target"])
 
         df.to_parquet(CACHE_FILE)
-        print(f"Saved mapped OmniPath data to {CACHE_FILE}")
+        logger.info("Saved mapped OmniPath data to %s", CACHE_FILE)
 
     G = nx.from_pandas_edgelist(
         df,
@@ -60,7 +68,7 @@ def fetch_omnipath_graph(force_reload: bool = False) -> nx.DiGraph:
     )
     for u, v, d in G.edges(data=True):
         d["sign"] = 1 if d["is_stimulation"] else -1 if d["is_inhibition"] else 0
-    print(f"Graph built with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
+    logger.info("Graph built with %s nodes and %s edges", G.number_of_nodes(), G.number_of_edges())
     return G
 
 
@@ -74,47 +82,12 @@ def one_hop_coverage(G: nx.DiGraph, perturb: str, descendants: dict[str, int]):
     return explained, len(explained), len(descendants) - len(explained), coverage
 
 
+
+
+def main():
+    ap = argparse.ArgumentParser()
+
+
+
 if __name__ == "__main__":
-    # Build OmniPath graph once
-    G = fetch_omnipath_graph(force_reload=False)
-
-    # Load perturbation manifest
-    perturb_df = pd.read_csv(MANIFEST)
-    perturb_df = perturb_df[perturb_df["Karen_Flag"] == "Use_for_analysis"]
-    print(f"Perturbations selected: {len(perturb_df)}")
-
-    all_results = []
-    start_time = time.time()
-
-    for idx, row in perturb_df.iterrows():
-        perturb_gene = row["Gene"].upper()
-        print(f"\n({idx + 1}/{len(perturb_df)}) Processing: {perturb_gene}")
-
-        file_path = os.path.join(INPUT_DIR, f"{perturb_gene}_vs_control.csv")
-        if not os.path.exists(file_path):
-            print(f" DEG file not found: {file_path}")
-            continue
-
-        descendants = load_significant_descendants(file_path)
-        explained_list, explained, not_explained, coverage = one_hop_coverage(G, perturb_gene, descendants)
-
-        all_results.append({
-            "perturbation": perturb_gene,
-            "total_descendants": len(descendants),
-            "explained_count": explained,
-            "not_explained_count": not_explained,
-            "coverage": coverage,
-            "explained_descendants": ",".join(explained_list) if explained_list else ""
-        })
-
-        # Progress log
-        loop_time = time.time() - start_time
-        avg_time = loop_time / (idx + 1)
-        remaining = avg_time * (len(perturb_df) - idx - 1)
-        print(f" Explained: {explained} | Coverage: {coverage:.2%} | "
-              f"ETA: {remaining/60:.1f} mins")
-
-    # Save final CSV
-    output_df = pd.DataFrame(all_results)
-    output_df.to_csv(OUTPUT_FILE, index=False)
-    print(f"\nSaved all results to {OUTPUT_FILE}")
+    main()

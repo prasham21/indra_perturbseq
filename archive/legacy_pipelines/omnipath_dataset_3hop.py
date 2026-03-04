@@ -1,6 +1,14 @@
+"""Legacy script: omnipath_dataset_3hop."""
+from __future__ import annotations
+
+import argparse
 import pandas as pd
 import numpy as np
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 def create_synthetic_omnipath_from_indra():
     """
@@ -8,13 +16,13 @@ def create_synthetic_omnipath_from_indra():
     10% identical, 25% partial overlap, 65% different
     """
     # Load your INDRA dataset
-    indra_df = pd.read_csv('/Users/prashammarfatia/Downloads/indra_3hop_no_hgnc_prefix.csv')
+    indra_df = pd.read_csv('indra_3hop_no_hgnc_prefix.csv')
 
     # Filter and get top 100 by p-value
     indra_clean = indra_df[np.isfinite(indra_df['pval']) & np.isfinite(indra_df['logfoldchange'])].copy()
     top_100 = indra_clean.nsmallest(100, 'pval')
 
-    print(f"Creating synthetic OmniPath from top 100 INDRA pathways")
+    logger.info("Creating synthetic OmniPath from top 100 INDRA pathways")
 
     # Collect all unique intermediates
     all_intermediates = set()
@@ -22,7 +30,7 @@ def create_synthetic_omnipath_from_indra():
         all_intermediates.update(indra_clean[col].dropna().unique())
     all_intermediates = list(all_intermediates)
 
-    print(f"Pool of {len(all_intermediates)} intermediates available for swapping")
+    logger.info("Pool of %s intermediates available for swapping", len(all_intermediates))
 
     # Create synthetic OmniPath dataset
     omnipath_data = []
@@ -73,18 +81,24 @@ def create_synthetic_omnipath_from_indra():
     omnipath_df = pd.DataFrame(omnipath_data)
 
     # Save
-    output_path = '/Users/prashammarfatia/Downloads/omnipath_3hop_synthetic.csv'
+    output_path = 'omnipath_3hop_synthetic.csv'
     omnipath_df.to_csv(output_path, index=False)
 
-    print(f"\nSynthetic OmniPath dataset created: {output_path}")
-    print(f"\nPathway overlap distribution:")
-    print(f"  Identical: {sum(omnipath_df['pathway_type'] == 'identical')}")
-    print(f"  Partial: {sum(omnipath_df['pathway_type'] == 'partial')}")
-    print(f"  Different: {sum(omnipath_df['pathway_type'] == 'different')}")
+    logger.info("\nSynthetic OmniPath dataset created: %s", output_path)
+    logger.info("\nPathway overlap distribution:")
+    logger.info("  Identical: %s", sum(omnipath_df['pathway_type'] == 'identical'))
+    logger.info("  Partial: %s", sum(omnipath_df['pathway_type'] == 'partial'))
+    logger.info("  Different: %s", sum(omnipath_df['pathway_type'] == 'different'))
 
     return omnipath_df
 
 
+
+
+def main():
+    ap = argparse.ArgumentParser()
+
+
+
 if __name__ == "__main__":
-    omnipath_df = create_synthetic_omnipath_from_indra()
-    print("\nReady for overlay visualization!")
+    main()

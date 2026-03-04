@@ -1,10 +1,16 @@
+"""Legacy script: C14 + endothelial MeSH term reference creation."""
+from __future__ import annotations
+
 import argparse
 import re
-from collections import defaultdict
 
 import pandas as pd
 from indra_cogex.client.neo4j_client import Neo4jClient
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 C14_LINE_RE = re.compile(r"^(?P<name>.+?)\s*\[(?P<tree>C14(?:\.\d+)*?)\]\s*$", re.IGNORECASE)
 
@@ -19,12 +25,10 @@ def parse_c14_names_from_text(text: str) -> list[str]:
         if not m:
             continue
         name = m.group("name").strip()
-        # drop obvious headers/noise if any sneak in
         if name.lower() in {"details", "qualifiers", "mesh tree structures", "concepts"}:
             continue
         names.append(name)
-    # de-dup while preserving order
-    seen = set()
+    seen: set[str] = set()
     out = []
     for n in names:
         k = n.lower()
@@ -36,15 +40,13 @@ def parse_c14_names_from_text(text: str) -> list[str]:
 
 def normalize_mesh_id(mid: str) -> str:
     mid = str(mid or "").strip().upper()
-    # Your downstream reference filters keep only D* MeSH descriptor IDs
     return mid if re.fullmatch(r"D\d{5,10}", mid) else ""
 
 
 def map_names_to_mesh_ids(client: Neo4jClient, names: list[str]) -> tuple[pd.DataFrame, list[str]]:
-    """
-    Exact case-insensitive name match in Neo4j:
-      input name -> mesh_id, mesh_name
-    Returns (mapped_df, unmapped_names)
+    """Exact case-insensitive name match in Neo4j.
+
+    Returns (mapped_df, unmapped_names).
     """
     if not names:
         return pd.DataFrame(columns=["mesh_id", "mesh_name", "origin", "child_of"]), []
@@ -63,7 +65,7 @@ def map_names_to_mesh_ids(client: Neo4jClient, names: list[str]) -> tuple[pd.Dat
     rows = client.query_tx(q, names=names)
 
     mapped = []
-    hit_names_lower = set()
+    hit_names_lower: set[str] = set()
     for r in rows:
         if isinstance(r, dict):
             input_name = r.get("input_name", "")
@@ -137,44 +139,42 @@ def fetch_endothelium_keyword_mesh(client: Neo4jClient) -> pd.DataFrame:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--c14-text-file", required=True, help="Text file containing your pasted C14 tree listing.")
+    ap.add_argument("--c14-text-file", required=True, help="Text file containing pasted C14 tree listing.")
     ap.add_argument("--out-csv", required=True, help="Output reference CSV (mesh_id, mesh_name, origin, child_of).")
     ap.add_argument("--unmapped-out", default="", help="Optional: write unmapped C14 names here.")
     args = ap.parse_args()
 
-    text = open(args.c14_text_file, "r", encoding="utf-8").read()
+    with open(args.c14_text_file, "r", encoding="utf-8") as fh:
+        text = fh.read()
     c14_names = parse_c14_names_from_text(text)
-    print(f"Parsed {len(c14_names):,} unique C14 names from pasted text")
+    logger.info("Parsed %d unique C14 names from pasted text", len(c14_names))
 
     client = Neo4jClient()
 
     df_c14, unmapped = map_names_to_mesh_ids(client, c14_names)
-    print(f"Mapped {len(df_c14):,} C14 names to MeSH descriptor IDs (D*)")
-    print(f"Unmapped C14 names (case-insensitive exact match): {len(unmapped):,}")
+    logger.info("Mapped %d C14 names to MeSH descriptor IDs (D*)", len(df_c14))
+    logger.info("Unmapped C14 names (case-insensitive exact match): %d", len(unmapped))
 
     df_endo = fetch_endothelium_keyword_mesh(client)
-    print(f"Keyword endothelium/endothelial matches (D*): {len(df_endo):,}")
+    logger.info("Keyword endothelium/endothelial matches (D*): %d", len(df_endo))
 
     df = pd.concat([df_c14, df_endo], ignore_index=True)
     df["mesh_id"] = df["mesh_id"].apply(normalize_mesh_id)
     df = df[df["mesh_id"] != ""].copy()
 
-    # one row per descriptor ID; keep a stable origin label if duplicates exist
-    # (if a term matches both constraints, prefer C14 label)
     origin_rank = {"C14_from_pasted_tree": 0, "endothelium_keyword": 1}
     df["_rank"] = df["origin"].map(lambda x: origin_rank.get(x, 99))
     df = df.sort_values(["mesh_id", "_rank"]).drop_duplicates(subset=["mesh_id"], keep="first")
     df = df.drop(columns=["_rank"]).sort_values(["mesh_id"]).reset_index(drop=True)
 
     df.to_csv(args.out_csv, index=False)
-    print(f"\n✅ Wrote {len(df):,} MeSH descriptor IDs to: {args.out_csv}")
-    print("Use this file anywhere you currently pass --mesh-reference")
+    logger.info("Wrote %d MeSH descriptor IDs to: %s", len(df), args.out_csv)
 
     if args.unmapped_out:
         with open(args.unmapped_out, "w", encoding="utf-8") as f:
             for n in unmapped:
                 f.write(n + "\n")
-        print(f"📝 Wrote unmapped C14 names to: {args.unmapped_out}")
+        logger.info("Wrote unmapped C14 names to: %s", args.unmapped_out)
 
 
 if __name__ == "__main__":

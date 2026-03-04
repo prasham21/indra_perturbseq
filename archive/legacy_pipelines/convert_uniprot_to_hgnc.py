@@ -1,23 +1,26 @@
+"""Legacy script: convert_uniprot_to_hgnc."""
+from __future__ import annotations
+
+import argparse
+
 import os
 import pandas as pd
 from indra.databases import uniprot_client, hgnc_client
 
-# === CONFIG ===
-INPUT_FILE = "/Users/prashammarfatia/Downloads/indra_4hop_results_human_final.csv"
-OUTPUT_FILE = "/Users/prashammarfatia/Downloads/indra_4hop_results_converted_2.csv"
+import logging
 
 
-# === FUNCTION ===
+logger = logging.getLogger(__name__)
+
+
 def convert_to_hgnc_symbol(identifier: str) -> str:
     """Convert UniProt or UniProt.chain IDs to HGNC symbols if possible."""
     if not isinstance(identifier, str):
         return identifier
-    # Normalize variants
     identifier = identifier.strip()
     identifier = identifier.replace("uniprot.chain:", "uniprot:")
     identifier = identifier.replace("hgnc:uniprot:", "uniprot:")
 
-    # If not UniProt, return as is
     if not identifier.startswith("uniprot:"):
         return identifier
 
@@ -31,12 +34,16 @@ def convert_to_hgnc_symbol(identifier: str) -> str:
 
 
 def main():
-    print("=== UniProt → HGNC Symbol Conversion ===")
-    print(f"Loading input: {INPUT_FILE}")
-    df = pd.read_csv(INPUT_FILE)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--input-file", default="indra_4hop_results_human_final.csv", help="Path for args.input_file.")
+    ap.add_argument("--output-file", default="indra_4hop_results_converted_2.csv", help="Path for args.output_file.")
+    args = ap.parse_args()
+
+    logger.info("Loading input: %s", args.input_file)
+    df = pd.read_csv(args.input_file)
 
     intermediate_cols = [col for col in df.columns if col.startswith("intermediate_")]
-    print(f"Converting columns: {intermediate_cols}")
+    logger.info("Converting columns: %s", intermediate_cols)
 
     total_before = 0
     total_converted = 0
@@ -57,19 +64,17 @@ def main():
 
         df[col] = df[col].apply(safe_convert)
 
-    print(f"Total UniProt-like IDs found: {total_before}")
-    print(f"Successfully converted: {total_converted}")
-    print(f"Unconverted (likely non-human proteins or missing): {len(not_found)}")
+    logger.info("Total UniProt-like IDs found: %s", total_before)
+    logger.info("Successfully converted: %s", total_converted)
+    logger.info("Unconverted (likely non-human proteins or missing): %s", len(not_found))
 
-    # Save new file
-    df.to_csv(OUTPUT_FILE, index=False)
-    print(f" Saved converted file to: {OUTPUT_FILE}")
+    df.to_csv(args.output_file, index=False)
+    logger.info("Saved converted file to: %s", args.output_file)
 
-    # Optional: save missing IDs list
     if not_found:
-        with open(OUTPUT_FILE.replace(".csv", "_unmapped.txt"), "w") as f:
+        with open(args.output_file.replace(".csv", "_unmapped.txt"), "w") as f:
             f.write("\n".join(sorted(not_found)))
-        print(f"Unmapped UniProt IDs saved to: {OUTPUT_FILE.replace('.csv', '_unmapped.txt')}")
+        logger.info("Unmapped UniProt IDs saved to: %s", args.output_file.replace('.csv', '_unmapped.txt'))
 
 
 if __name__ == "__main__":

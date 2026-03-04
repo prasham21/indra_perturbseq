@@ -1,5 +1,9 @@
+"""1-hop extraction from INDRA network export (local graph pickle)."""
+from __future__ import annotations
+
 import argparse
 import json
+import logging
 import os
 import pickle
 import time
@@ -8,6 +12,8 @@ import urllib.request
 import numpy as np
 import pandas as pd
 from indra.databases import hgnc_client
+
+logger = logging.getLogger(__name__)
 
 INCDEC = {"IncreaseAmount", "DecreaseAmount"}
 
@@ -33,10 +39,7 @@ def is_hgnc_node(G, node):
 
 
 def normalize_hgnc_symbol(symbol: str):
-    """
-    Normalize to current HGNC symbol when possible.
-    If HGNC returns multiple IDs, pick one deterministically.
-    """
+    """Normalize to current HGNC symbol when possible."""
     if symbol is None or (isinstance(symbol, float) and pd.isna(symbol)):
         return None
     s = str(symbol).strip()
@@ -90,10 +93,7 @@ def fetch_from_hash_json(stmt_hash: int):
 
 
 def rich_stmt_text_from_hash(stmt_hash: int, cache: dict) -> str:
-    """
-    Fetch richer statement text for a statement hash from db.indra.bio and cache it.
-    Uses the statement payload returned under the 'statements' field.
-    """
+    """Fetch richer statement text for a statement hash from db.indra.bio."""
     if stmt_hash in cache:
         return cache[stmt_hash]
 
@@ -118,36 +118,39 @@ def rich_stmt_text_from_hash(stmt_hash: int, cache: dict) -> str:
 
 
 def main():
-    ap = argparse.ArgumentParser(description="1-hop extraction from INDRA network export (local graph).")
+    ap = argparse.ArgumentParser(
+        description="1-hop extraction from INDRA network export (local graph).",
+    )
     ap.add_argument("--graph-pkl", required=True, help="Path to indranet_dir_graph_fix_corr_weights.pkl")
-    ap.add_argument("--perturbations-csv", required=True, help="Path to target_validation_expanded.csv")
-    ap.add_argument("--de-dir", required=True, help="Folder containing <GENE>_vs_control.csv files")
+    ap.add_argument("--source-genes-csv", required=True, help="Path to target_validation_expanded.csv")
+    ap.add_argument("--deg-dir", required=True, help="Folder containing <GENE>_vs_control.csv files")
 
-    ap.add_argument("--out-csv-main", required=True, help="Output CSV for non-self paths (source != target)")
-    ap.add_argument("--out-csv-self", required=True, help="Output CSV for self paths (source == target)")
+    ap.add_argument("--output-main", required=True, help="Output CSV for non-self paths")
+    ap.add_argument("--output-self-targets", required=True, help="Output CSV for self paths")
 
-    ap.add_argument("--karen-flag-col", default="Karen_Flag")
-    ap.add_argument("--karen-flag-value", default="Use_for_analysis")
-    ap.add_argument("--gene-col", default="Gene")
+    ap.add_argument("--filter-column", default="analysis_flag")
+    ap.add_argument("--filter-value", default="Use_for_analysis")
+    ap.add_argument("--gene-column", default="Gene")
 
     ap.add_argument("--p-threshold", type=float, default=0.05)
     ap.add_argument("--prefer-fdr", action="store_true")
 
     args = ap.parse_args()
 
-    print("Loading network export...")
+    logger.info("Loading network export...")
     G, load_secs = load_graph(args.graph_pkl)
-    print(f"Loaded graph in {load_secs/60:.1f} min | nodes={G.number_of_nodes():,} edges={G.number_of_edges():,}")
-    print()
+    logger.info(
+        "Loaded graph in %.1f min | nodes=%d edges=%d",
+        load_secs / 60, G.number_of_nodes(), G.number_of_edges(),
+    )
 
     pert = pd.read_csv(args.perturbations_csv, low_memory=False)
-    if args.karen_flag_col in pert.columns:
-        pert = pert[pert[args.karen_flag_col] == args.karen_flag_value].copy()
-    pert = pert.dropna(subset=[args.gene_col])
+    if args.filter_column in pert.columns:
+        pert = pert[pert[args.filter_column] == args.filter_value].copy()
+    pert = pert.dropna(subset=[args.gene_column])
 
-    genes = [str(x).strip() for x in pert[args.gene_col].tolist() if str(x).strip()]
-    print(f"Perturbation genes to process: {len(genes)}")
-    print()
+    genes = [str(x).strip() for x in pert[args.gene_column].tolist() if str(x).strip()]
+    logger.info("Perturbation genes to process: %d", len(genes))
 
     all_rows = []
     t0 = time.time()
@@ -157,25 +160,25 @@ def main():
         if not gene:
             continue
 
-        deg_path = os.path.join(args.de_dir, f"{raw_gene}_vs_control.csv")
+        deg_path = os.path.join(args.deg_dir, f"{raw_gene}_vs_control.csv")
         if not os.path.exists(deg_path):
-            print(f"[{i}/{len(genes)}] SKIP {raw_gene}: missing DEG file {deg_path}")
+            logger.info("[%d/%d] SKIP %s: missing DEG file %s", i, len(genes), raw_gene, deg_path)
             continue
 
         if gene not in G or not is_hgnc_node(G, gene):
-            print(f"[{i}/{len(genes)}] SKIP {raw_gene}->{gene}: source not in graph as HGNC node")
+            logger.info("[%d/%d] SKIP %s->%s: source not in graph as HGNC node", i, len(genes), raw_gene, gene)
             continue
 
         df = pd.read_csv(deg_path, low_memory=False)
         if "names" not in df.columns:
-            print(f"[{i}/{len(genes)}] SKIP {raw_gene}: DEG missing 'names' column")
+            logger.info("[%d/%d] SKIP %s: DEG missing 'names' column", i, len(genes), raw_gene)
             continue
 
         sig_col = pick_sig_column(df, prefer_fdr=args.prefer_fdr)
         df[sig_col] = pd.to_numeric(df[sig_col], errors="coerce")
         df = df[df[sig_col] < args.p_threshold].copy()
         if df.empty:
-            print(f"[{i}/{len(genes)}] {raw_gene}: no significant targets")
+            logger.info("[%d/%d] %s: no significant targets", i, len(genes), raw_gene)
             continue
 
         if "logfoldchanges" in df.columns:
@@ -225,7 +228,10 @@ def main():
                 })
 
         elapsed = time.time() - t0
-        print(f"[{i}/{len(genes)}] {raw_gene}->{gene}: targets={len(targets)} | pairs_with_edge={found_pairs} | rows={found_rows} | elapsed={elapsed/60:.1f}m")
+        logger.info(
+            "[%d/%d] %s->%s: targets=%d | pairs_with_edge=%d | rows=%d | elapsed=%.1fm",
+            i, len(genes), raw_gene, gene, len(targets), found_pairs, found_rows, elapsed / 60,
+        )
 
     out_df = pd.DataFrame(all_rows)
     out_df = out_df.reindex(columns=[
@@ -252,15 +258,14 @@ def main():
     self_df = out_df[out_df["source"] == out_df["target"]].copy()
     main_df = out_df[out_df["source"] != out_df["target"]].copy()
 
-    os.makedirs(os.path.dirname(args.out_csv_main) or ".", exist_ok=True)
-    os.makedirs(os.path.dirname(args.out_csv_self) or ".", exist_ok=True)
+    os.makedirs(os.path.dirname(args.output_main) or ".", exist_ok=True)
+    os.makedirs(os.path.dirname(args.output_self_targets) or ".", exist_ok=True)
 
-    main_df.to_csv(args.out_csv_main, index=False)
-    self_df.to_csv(args.out_csv_self, index=False)
+    main_df.to_csv(args.output_main, index=False)
+    self_df.to_csv(args.output_self_targets, index=False)
 
-    print("\nDONE.")
-    print(f"- non-self rows: {len(main_df):,} -> {args.out_csv_main}")
-    print(f"- self rows:     {len(self_df):,} -> {args.out_csv_self}")
+    logger.info("Done. non-self rows: %d -> %s", len(main_df), args.output_main)
+    logger.info("Done. self rows:     %d -> %s", len(self_df), args.output_self_targets)
 
 
 if __name__ == "__main__":

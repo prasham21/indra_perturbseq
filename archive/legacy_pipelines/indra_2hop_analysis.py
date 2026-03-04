@@ -1,52 +1,61 @@
+"""Superseded legacy script for 2-hop INDRA analysis with batch/individual query modes.
+
+Refactored into src/indra_perturbseq/pipelines/.
+"""
+from __future__ import annotations
+
+import argparse
+import concurrent.futures
+import logging
 import os
+import pickle
 import time
+from threading import Lock
+
 import pandas as pd
 from indra_cogex.analysis.source_targets_explanation import get_valid_gene_ids
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra.databases.hgnc_client import get_hgnc_name, get_current_hgnc_id
-import pickle
-import concurrent.futures
-from threading import Lock
 
-# Thread-safe globals
+logger = logging.getLogger(__name__)
+
 results_lock = Lock()
 
 
 def save_checkpoint(results, processed_genes, checkpoint_file="speed_optimization_checkpoint.pkl"):
-    """Save progress"""
+    """Save progress."""
     checkpoint_data = {
-        'results': results,
-        'processed_genes': processed_genes,
-        'timestamp': time.time()
+        "results": results,
+        "processed_genes": processed_genes,
+        "timestamp": time.time(),
     }
-    with open(checkpoint_file, 'wb') as f:
+    with open(checkpoint_file, "wb") as f:
         pickle.dump(checkpoint_data, f)
 
 
 def load_checkpoint(checkpoint_file="speed_optimization_checkpoint.pkl"):
-    """Load previous progress"""
+    """Load previous progress."""
     try:
-        with open(checkpoint_file, 'rb') as f:
+        with open(checkpoint_file, "rb") as f:
             data = pickle.load(f)
-            saved_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(data['timestamp']))
-            print(f" Resuming from checkpoint saved at {saved_time}")
-            print(f"   - {len(data['results'])} results already collected")
-            print(f"   - {len(data['processed_genes'])} genes already processed")
-            return data['results'], data['processed_genes']
+            saved_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data["timestamp"]))
+            logger.info("Resuming from checkpoint saved at %s", saved_time)
+            logger.info("  %d results already collected", len(data["results"]))
+            logger.info("  %d genes already processed", len(data["processed_genes"]))
+            return data["results"], data["processed_genes"]
     except FileNotFoundError:
-        print(" Starting fresh - no checkpoint found")
+        logger.info("Starting fresh - no checkpoint found")
         return [], set()
 
 
 def test_batch_query_safety(client, source_id, target_ids):
-    """Test if batch queries work and are faster"""
+    """Test if batch queries work and are faster."""
     if len(target_ids) < 5:
         return False, None
 
-    print("🧪 Testing batch query performance...")
+    logger.info("Testing batch query performance...")
     test_targets = target_ids[:min(10, len(target_ids))]
 
-    # Original individual query
     original_query = """
     MATCH (a:BioEntity {id: $source})-[r1:indra_rel]->(m:BioEntity)-[r2:indra_rel]->(b:BioEntity {id: $target})
     WHERE r2.stmt_type IN ['IncreaseAmount', 'DecreaseAmount']
@@ -56,7 +65,6 @@ def test_batch_query_safety(client, source_id, target_ids):
            r1.evidence_count, r2.evidence_count
     """
 
-    # Batch query
     batch_query = """
     UNWIND $target_list AS target_id
     MATCH (a:BioEntity {id: $source})-[r1:indra_rel]->(m:BioEntity)-[r2:indra_rel]->(b:BioEntity {id: target_id})
@@ -67,7 +75,6 @@ def test_batch_query_safety(client, source_id, target_ids):
            r1.evidence_count, r2.evidence_count
     """
 
-    # Test individual queries
     start_time = time.time()
     individual_count = 0
     try:
@@ -76,10 +83,9 @@ def test_batch_query_safety(client, source_id, target_ids):
             individual_count += len(results)
         individual_time = time.time() - start_time
     except Exception as e:
-        print(f"    Individual queries failed: {e}")
+        logger.warning("Individual queries failed: %s", e)
         return False, None
 
-    # Test batch query
     try:
         start_time = time.time()
         batch_results = client.query_tx(batch_query, source=source_id, target_list=test_targets)
@@ -89,26 +95,24 @@ def test_batch_query_safety(client, source_id, target_ids):
         speedup = individual_time / batch_time if batch_time > 0 else 0
         result_similarity = abs(batch_count - individual_count) / max(individual_count, 1)
 
-        print(f"   Individual: {individual_time:.2f}s, {individual_count} results")
-        print(f"   Batch: {batch_time:.2f}s, {batch_count} results")
-        print(f"   Speedup: {speedup:.1f}x, Result diff: {result_similarity:.1%}")
+        logger.info("  Individual: %.2fs, %d results", individual_time, individual_count)
+        logger.info("  Batch: %.2fs, %d results", batch_time, batch_count)
+        logger.info("  Speedup: %.1fx, Result diff: %.1f%%", speedup, result_similarity * 100)
 
-        # Use batch if it's faster and results are similar (within 10% difference)
         if speedup > 1.2 and result_similarity < 0.1:
-            print("    Batch queries look good - will use them")
+            logger.info("Batch queries look good - will use them")
             return True, batch_query
         else:
-            print("   ️ Batch queries not beneficial - sticking with individual")
+            logger.info("Batch queries not beneficial - sticking with individual")
             return False, None
 
     except Exception as e:
-        print(f"    Batch query failed: {e}")
+        logger.warning("Batch query failed: %s", e)
         return False, None
 
 
 def execute_queries_smart(client, source_id, target_ids, use_batch, batch_query, batch_size=50):
-    """Execute queries using the best method available"""
-
+    """Execute queries using the best method available."""
     original_query = """
     MATCH (a:BioEntity {id: $source})-[r1:indra_rel]->(m:BioEntity)-[r2:indra_rel]->(b:BioEntity {id: $target})
     WHERE r2.stmt_type IN ['IncreaseAmount', 'DecreaseAmount']
@@ -121,29 +125,25 @@ def execute_queries_smart(client, source_id, target_ids, use_batch, batch_query,
     all_results = []
 
     if not use_batch:
-        # Use individual queries (original approach)
         for target_id in target_ids:
             try:
                 results = client.query_tx(original_query, source=source_id, target=target_id)
-                # Add target_id to match batch format
                 for result in results:
                     extended_result = list(result)
-                    extended_result.insert(3, target_id)  # Add target_id at position 3
+                    extended_result.insert(3, target_id)
                     all_results.append(tuple(extended_result))
             except Exception as e:
-                print(f"      Query failed for target: {e}")
+                logger.debug("Query failed for target: %s", e)
                 continue
         return all_results
 
-    # Use batch queries with fallback
     for i in range(0, len(target_ids), batch_size):
         batch_targets = target_ids[i:i + batch_size]
         try:
             batch_results = client.query_tx(batch_query, source=source_id, target_list=batch_targets)
             all_results.extend(batch_results)
         except Exception as e:
-            print(f"      Batch failed, using individual queries: {e}")
-            # Fallback to individual queries for this batch
+            logger.warning("Batch failed, using individual queries: %s", e)
             for target_id in batch_targets:
                 try:
                     results = client.query_tx(original_query, source=source_id, target=target_id)
@@ -151,36 +151,33 @@ def execute_queries_smart(client, source_id, target_ids, use_batch, batch_query,
                         extended_result = list(result)
                         extended_result.insert(3, target_id)
                         all_results.append(tuple(extended_result))
-                except:
+                except Exception:
                     continue
 
     return all_results
 
 
-def process_single_gene(args):
-    """Process one gene - designed for parallel execution"""
-    gene_info, total_genes, use_batch, batch_query = args
+def process_single_gene(args_tuple):
+    """Process one gene - designed for parallel execution."""
+    gene_info, total_genes, use_batch, batch_query, deg_dir = args_tuple
     perturb_gene = gene_info["Gene"]
 
-    # Each thread gets its own client
     client = Neo4jClient()
     local_results = []
 
     try:
-        print(f"🔬 Processing: {perturb_gene}")
+        logger.info("Processing: %s", perturb_gene)
         start_time = time.time()
 
-        # Get HGNC ID
         hgnc_id = get_current_hgnc_id(perturb_gene.upper())
         if not hgnc_id:
-            print(f"   ️ No HGNC ID for {perturb_gene}")
+            logger.warning("No HGNC ID for %s", perturb_gene)
             return []
         source_id = f"hgnc:{hgnc_id}"
 
-        # Load DEG data
-        deg_path = f"/Users/prashammarfatia/Downloads/de_results_per_gene/{perturb_gene}_vs_control.csv"
+        deg_path = os.path.join(deg_dir, f"{perturb_gene}_vs_control.csv")
         if not os.path.exists(deg_path):
-            print(f"    DEG file not found for {perturb_gene}")
+            logger.warning("DEG file not found for %s", perturb_gene)
             return []
 
         df = pd.read_csv(deg_path)
@@ -194,20 +191,18 @@ def process_single_gene(args):
         deg_map = df.set_index("names")[["logfoldchanges", "pvals"]].to_dict("index")
 
         if not target_ids:
-            print(f"   ️ No valid targets for {perturb_gene}")
+            logger.warning("No valid targets for %s", perturb_gene)
             return []
 
-        print(f"    Querying {len(target_ids)} targets...")
+        logger.debug("Querying %d targets...", len(target_ids))
 
-        # Execute queries
         results = execute_queries_smart(client, source_id, target_ids, use_batch, batch_query)
 
-        # Process results
         for r in results:
-            if len(r) >= 10:  # Batch format with target_id
+            if len(r) >= 10:
                 _, intermediate_hgnc, _, target_id, stmt1, stmt2, belief1, belief2, ev1, ev2 = r[:10]
                 target_symbol = hgnc_to_symbol.get(target_id, target_id.replace("hgnc:", ""))
-            else:  # Individual query format (fallback)
+            else:
                 continue
 
             interm_id = intermediate_hgnc.replace("hgnc:", "")
@@ -225,39 +220,42 @@ def process_single_gene(args):
                 "evidence_1": ev1,
                 "evidence_2": ev2,
                 "logfoldchange": stats["logfoldchanges"],
-                "pval": stats["pvals"]
+                "pval": stats["pvals"],
             })
 
         elapsed = time.time() - start_time
-        print(f"    {perturb_gene}: {len(local_results)} results in {elapsed / 60:.1f} min")
+        logger.info("%s: %d results in %.1f min", perturb_gene, len(local_results), elapsed / 60)
         return local_results
 
     except Exception as e:
-        print(f"    Error with {perturb_gene}: {e}")
+        logger.error("Error with %s: %s", perturb_gene, e)
         return []
 
 
 def main():
-    # Load data
-    perturb_df = pd.read_csv("/Users/prashammarfatia/Downloads/target_validation_expanded.csv")
-    perturb_df = perturb_df[perturb_df['Karen_Flag'] == "Use_for_analysis"]
-    print(f"🔬 Perturbations selected: {len(perturb_df)}")
+    parser = argparse.ArgumentParser(description="2-hop INDRA analysis")
+    parser.add_argument("--perturb-csv", required=True, help="Path to perturbation CSV")
+    parser.add_argument("--deg-dir", required=True, help="Directory with DEG CSVs")
+    parser.add_argument("--output", default="indra_2hop_all_perturbations.csv", help="Output CSV path")
+    parser.add_argument("--checkpoint-file", default="speed_optimization_checkpoint.pkl")
+    parser.add_argument("--max-workers", type=int, default=3)
+    args = parser.parse_args()
 
-    # Load checkpoint
-    checkpoint_file = "speed_optimization_checkpoint.pkl"
-    all_results, processed_genes = load_checkpoint(checkpoint_file)
+    perturb_df = pd.read_csv(args.perturb_csv)
+    perturb_df = perturb_df[perturb_df["analysis_flag"] == "Use_for_analysis"]
+    logger.info("Perturbations selected: %d", len(perturb_df))
 
-    # Filter remaining genes
-    remaining_df = perturb_df[~perturb_df['Gene'].isin(processed_genes)]
-    print(f" Remaining to process: {len(remaining_df)} genes")
+    all_results, processed_genes = load_checkpoint(args.checkpoint_file)
+
+    remaining_df = perturb_df[~perturb_df["Gene"].isin(processed_genes)]
+    logger.info("Remaining to process: %d genes", len(remaining_df))
 
     if len(remaining_df) == 0:
-        print(" All genes already processed!")
+        logger.info("All genes already processed!")
         output_df = pd.DataFrame(all_results)
-        output_df.to_csv("indra_2hop_all_perturbations.csv", index=False)
+        output_df.to_csv(args.output, index=False)
         return
 
-    # Test batch queries on first gene
     use_batch = False
     batch_query = None
 
@@ -269,43 +267,41 @@ def main():
             hgnc_id = get_current_hgnc_id(test_gene["Gene"].upper())
             if hgnc_id:
                 source_id = f"hgnc:{hgnc_id}"
-
-                # Get some targets for testing
-                deg_path = f"/Users/prashammarfatia/Downloads/de_results_per_gene/{test_gene['Gene']}_vs_control.csv"
+                deg_path = os.path.join(args.deg_dir, f"{test_gene['Gene']}_vs_control.csv")
                 if os.path.exists(deg_path):
                     df = pd.read_csv(deg_path)
                     df = df[df["pvals"] < 0.05]
-                    gene_symbols = df["names"].dropna().unique().tolist()[:20]  # Test with first 20
+                    gene_symbols = df["names"].dropna().unique().tolist()[:20]
                     converted = get_valid_gene_ids(gene_symbols)
                     target_ids = [f"hgnc:{v}" for v in converted if v]
 
                     if len(target_ids) >= 5:
-                        use_batch, batch_query = test_batch_query_safety(test_client, source_id, target_ids)
+                        use_batch, batch_query = test_batch_query_safety(
+                            test_client, source_id, target_ids,
+                        )
         except Exception as e:
-            print(f"   Batch test failed: {e}")
+            logger.warning("Batch test failed: %s", e)
 
-        # Let Python handle cleanup automatically
+    logger.info("Starting optimized processing...")
+    logger.info("  Batch queries: %s", "Enabled" if use_batch else "Disabled")
+    logger.info("  Parallel workers: %d (conservative)", args.max_workers)
 
-    print(f"\n Starting optimized processing...")
-    print(f"   Batch queries: {' Enabled' if use_batch else ' Disabled'}")
-    print(f"   Parallel workers: 3 (conservative)")
-    print("=" * 60)
-
-    # Process with limited parallelization
     start_time = time.time()
     gene_data = [{"Gene": row["Gene"]} for _, row in remaining_df.iterrows()]
-    process_args = [(gene_info, len(remaining_df), use_batch, batch_query) for gene_info in gene_data]
+    process_args = [
+        (gene_info, len(remaining_df), use_batch, batch_query, args.deg_dir)
+        for gene_info in gene_data
+    ]
 
     completed_results = []
     completed_count = 0
 
-    # Use only 3 workers to be conservative
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        # Submit all jobs
-        future_to_gene = {executor.submit(process_single_gene, args): args[0]["Gene"]
-                          for args in process_args}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.max_workers) as executor:
+        future_to_gene = {
+            executor.submit(process_single_gene, a): a[0]["Gene"]
+            for a in process_args
+        }
 
-        # Collect results as they complete
         for future in concurrent.futures.as_completed(future_to_gene):
             gene_name = future_to_gene[future]
             completed_count += 1
@@ -315,40 +311,40 @@ def main():
                 completed_results.extend(gene_results)
                 processed_genes.add(gene_name)
 
-                # Progress update
                 elapsed = time.time() - start_time
                 avg_time = elapsed / completed_count
                 remaining_time = avg_time * (len(remaining_df) - completed_count)
 
-                print(f"\n Progress: {completed_count}/{len(remaining_df)} | "
-                      f"Results: {len(all_results) + len(completed_results)} | "
-                      f"ETA: {remaining_time / 60:.1f} min")
+                logger.info(
+                    "Progress: %d/%d | Results: %d | ETA: %.1f min",
+                    completed_count, len(remaining_df),
+                    len(all_results) + len(completed_results),
+                    remaining_time / 60,
+                )
 
-                # Checkpoint every 10 genes
                 if completed_count % 10 == 0:
                     current_all_results = all_results + completed_results
-                    save_checkpoint(current_all_results, processed_genes, checkpoint_file)
-                    print(" Checkpoint saved")
+                    save_checkpoint(current_all_results, processed_genes, args.checkpoint_file)
+                    logger.info("Checkpoint saved")
 
             except Exception as e:
-                print(f" Failed to process {gene_name}: {e}")
+                logger.error("Failed to process %s: %s", gene_name, e)
 
-    # Final save
     final_results = all_results + completed_results
     output_df = pd.DataFrame(final_results)
-    output_df.to_csv("indra_2hop_all_perturbations.csv", index=False)
+    output_df.to_csv(args.output, index=False)
 
     total_time = time.time() - start_time
-    print(f"\n Processing complete!")
-    print(f"    Total results: {len(final_results)}")
-    print(f"   ️ Total time: {total_time / 3600:.1f} hours")
-    print(f"    Average: {total_time / len(remaining_df) / 60:.1f} min per gene")
-    print(f"    Results saved to: indra_2hop_all_perturbations.csv")
+    logger.info("Processing complete!")
+    logger.info("  Total results: %d", len(final_results))
+    logger.info("  Total time: %.1f hours", total_time / 3600)
+    logger.info("  Average: %.1f min per gene", total_time / len(remaining_df) / 60)
+    logger.info("  Results saved to: %s", args.output)
 
-    # Cleanup
-    if os.path.exists(checkpoint_file):
-        os.remove(checkpoint_file)
+    if os.path.exists(args.checkpoint_file):
+        os.remove(args.checkpoint_file)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

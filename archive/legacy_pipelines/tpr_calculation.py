@@ -1,23 +1,14 @@
+"""Compute TPR from real vs permuted path results relative to DEG positive pairs."""
+from __future__ import annotations
+
+import argparse
+import logging
 import os
+
 import pandas as pd
 from indra.databases import hgnc_client
 
-# --------- EDIT THESE 4 FILE PATHS ----------
-REAL_1HOP = "/Users/prashammarfatia/Downloads/indra_1hop_NETWORK_EXPORT_main.csv"
-REAL_2HOP = "/Users/prashammarfatia/Downloads/2hop_network_export_main.csv"
-PERM_1HOP = "/Users/prashammarfatia/Downloads/permuted_1hop_paths_seed44.csv"
-PERM_2HOP = "/Users/prashammarfatia/Downloads/permuted_2hop_paths_seed44.csv"
-
-# --------- EDIT THESE INPUT PATHS ----------
-GENES_CSV = "/Users/prashammarfatia/Downloads/target_validation_expanded.csv"
-DE_DIR    = "/Users/prashammarfatia/Downloads/de_results_per_gene/"
-
-P_THRESHOLD = 0.05
-KAREN_FLAG_COL = "Karen_Flag"
-KAREN_FLAG_VALUE = "Use_for_analysis"
-GENE_COL = "Gene"
-
-OUT_SUMMARY = "/Users/prashammarfatia/Downloads/tp_tpr_summary_seed42.csv"
+logger = logging.getLogger(__name__)
 
 def normalize_hgnc_symbol(symbol: str):
     if symbol is None:
@@ -35,16 +26,17 @@ def normalize_hgnc_symbol(symbol: str):
     name = hgnc_client.get_hgnc_name(hid) if hid else None
     return name or s.upper()
 
+
 def pick_sig_column(df: pd.DataFrame) -> str:
-    # tries common columns you use
     for c in ["pvals", "pval", "p_value", "p_val", "pvals_adj", "padj", "qval", "fdr", "p_adj"]:
         if c in df.columns:
             return c
     raise ValueError(f"No p-value column found. Columns: {df.columns.tolist()}")
 
+
 def load_pairs_from_results(csv_path: str):
     df = pd.read_csv(csv_path, low_memory=False)
-    if not {"source","target"}.issubset(df.columns):
+    if not {"source", "target"}.issubset(df.columns):
         raise ValueError(f"{csv_path} missing source/target columns. Has: {df.columns.tolist()}")
     df["source"] = df["source"].astype(str).str.strip()
     df["target"] = df["target"].astype(str).str.strip()
@@ -52,10 +44,11 @@ def load_pairs_from_results(csv_path: str):
     pairs = set(zip(df["source"], df["target"]))
     return pairs, df
 
+
 def build_positive_pairs_from_degs():
     genes_df = pd.read_csv(GENES_CSV, low_memory=False)
-    if KAREN_FLAG_COL in genes_df.columns:
-        genes_df = genes_df[genes_df[KAREN_FLAG_COL] == KAREN_FLAG_VALUE].copy()
+    if FILTER_COLUMN in genes_df.columns:
+        genes_df = genes_df[genes_df[FILTER_COLUMN] == FILTER_VALUE].copy()
     sources_raw = [str(x).strip() for x in genes_df[GENE_COL].dropna().tolist() if str(x).strip()]
 
     pos_pairs = set()
@@ -88,37 +81,66 @@ def build_positive_pairs_from_degs():
 
     return pos_pairs, per_source_counts
 
-def summarize(tp_pairs: set, total_pairs: int):
-    tpr = (len(tp_pairs) / total_pairs) if total_pairs else 0.0
-    return len(tp_pairs), total_pairs, tpr
 
-print("Loading result CSVs...")
-real1_pairs, _ = load_pairs_from_results(REAL_1HOP)
-real2_pairs, _ = load_pairs_from_results(REAL_2HOP)
-perm1_pairs, _ = load_pairs_from_results(PERM_1HOP)
-perm2_pairs, _ = load_pairs_from_results(PERM_2HOP)
 
-print("Building positive-pair denominator from DEG files...")
-pos_pairs, per_source = build_positive_pairs_from_degs()
-TOTAL = len(pos_pairs)
-print("Total positive pairs (p<0.05, self removed):", TOTAL)
 
-# Compute unions (<=2 hops)
-real_u = real1_pairs | real2_pairs
-perm_u = perm1_pairs | perm2_pairs
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--indra-1hop-network-export-main", default="indra_1hop_NETWORK_EXPORT_main.csv", help="Path: indra_1hop_NETWORK_EXPORT_main.csv")
+    ap.add_argument("--2hop-network-export-main", default="2hop_network_export_main.csv", help="Path: 2hop_network_export_main.csv")
+    ap.add_argument("--permuted-1hop-paths-seed44", default="permuted_1hop_paths_seed44.csv", help="Path: permuted_1hop_paths_seed44.csv")
+    ap.add_argument("--permuted-2hop-paths-seed44", default="permuted_2hop_paths_seed44.csv", help="Path: permuted_2hop_paths_seed44.csv")
+    ap.add_argument("--target-validation-expanded", default="target_validation_expanded.csv", help="Path: target_validation_expanded.csv")
+    ap.add_argument("--de-results-per-gene", default="de_results_per_gene/", help="Path: de_results_per_gene/")
+    ap.add_argument("--tp-tpr-summary-seed42", default="tp_tpr_summary_seed42.csv", help="Path: tp_tpr_summary_seed42.csv")
+    args = ap.parse_args()
 
-rows = []
-rows.append({"dataset":"real", "hop":"1hop", "tp_pairs":len(real1_pairs), "total_pos_pairs":TOTAL, "tpr": len(real1_pairs)/TOTAL if TOTAL else 0.0})
-rows.append({"dataset":"real", "hop":"2hop", "tp_pairs":len(real2_pairs), "total_pos_pairs":TOTAL, "tpr": len(real2_pairs)/TOTAL if TOTAL else 0.0})
-rows.append({"dataset":"real", "hop":"<=2hop_union", "tp_pairs":len(real_u), "total_pos_pairs":TOTAL, "tpr": len(real_u)/TOTAL if TOTAL else 0.0})
+    REAL_1HOP = "indra_1hop_NETWORK_EXPORT_main.csv"
+    REAL_2HOP = "2hop_network_export_main.csv"
+    PERM_1HOP = "permuted_1hop_paths_seed44.csv"
+    PERM_2HOP = "permuted_2hop_paths_seed44.csv"
 
-rows.append({"dataset":"permuted_seed42", "hop":"1hop", "tp_pairs":len(perm1_pairs), "total_pos_pairs":TOTAL, "tpr": len(perm1_pairs)/TOTAL if TOTAL else 0.0})
-rows.append({"dataset":"permuted_seed42", "hop":"2hop", "tp_pairs":len(perm2_pairs), "total_pos_pairs":TOTAL, "tpr": len(perm2_pairs)/TOTAL if TOTAL else 0.0})
-rows.append({"dataset":"permuted_seed42", "hop":"<=2hop_union", "tp_pairs":len(perm_u), "total_pos_pairs":TOTAL, "tpr": len(perm_u)/TOTAL if TOTAL else 0.0})
+    GENES_CSV = "target_validation_expanded.csv"
+    DE_DIR = "de_results_per_gene/"
 
-out = pd.DataFrame(rows)
-print("\nSUMMARY")
-print(out.to_string(index=False))
+    P_THRESHOLD = 0.05
+    FILTER_COLUMN = "analysis_flag"
+    FILTER_VALUE = "Use_for_analysis"
+    GENE_COL = "Gene"
 
-out.to_csv(OUT_SUMMARY, index=False)
-print("\nWrote:", OUT_SUMMARY)
+    OUT_SUMMARY = "tp_tpr_summary_seed42.csv"
+
+
+    logger.info("Loading result CSVs...")
+    real1_pairs, _ = load_pairs_from_results(REAL_1HOP)
+    real2_pairs, _ = load_pairs_from_results(REAL_2HOP)
+    perm1_pairs, _ = load_pairs_from_results(PERM_1HOP)
+    perm2_pairs, _ = load_pairs_from_results(PERM_2HOP)
+
+    logger.info("Building positive-pair denominator from DEG files...")
+    pos_pairs, per_source = build_positive_pairs_from_degs()
+    TOTAL = len(pos_pairs)
+    logger.info("Total positive pairs (p<0.05, self removed): %d", TOTAL)
+
+    real_u = real1_pairs | real2_pairs
+    perm_u = perm1_pairs | perm2_pairs
+
+    rows = []
+    rows.append({"dataset": "real", "hop": "1hop", "tp_pairs": len(real1_pairs), "total_pos_pairs": TOTAL, "tpr": len(real1_pairs) / TOTAL if TOTAL else 0.0})
+    rows.append({"dataset": "real", "hop": "2hop", "tp_pairs": len(real2_pairs), "total_pos_pairs": TOTAL, "tpr": len(real2_pairs) / TOTAL if TOTAL else 0.0})
+    rows.append({"dataset": "real", "hop": "<=2hop_union", "tp_pairs": len(real_u), "total_pos_pairs": TOTAL, "tpr": len(real_u) / TOTAL if TOTAL else 0.0})
+
+    rows.append({"dataset": "permuted_seed42", "hop": "1hop", "tp_pairs": len(perm1_pairs), "total_pos_pairs": TOTAL, "tpr": len(perm1_pairs) / TOTAL if TOTAL else 0.0})
+    rows.append({"dataset": "permuted_seed42", "hop": "2hop", "tp_pairs": len(perm2_pairs), "total_pos_pairs": TOTAL, "tpr": len(perm2_pairs) / TOTAL if TOTAL else 0.0})
+    rows.append({"dataset": "permuted_seed42", "hop": "<=2hop_union", "tp_pairs": len(perm_u), "total_pos_pairs": TOTAL, "tpr": len(perm_u) / TOTAL if TOTAL else 0.0})
+
+    out = pd.DataFrame(rows)
+    logger.info("SUMMARY\n%s", out.to_string(index=False))
+
+    out.to_csv(OUT_SUMMARY, index=False)
+    logger.info("Wrote: %s", OUT_SUMMARY)
+
+
+
+if __name__ == "__main__":
+    main()

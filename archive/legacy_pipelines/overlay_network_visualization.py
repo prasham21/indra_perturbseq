@@ -1,3 +1,6 @@
+"""Legacy script: overlay_network_visualization."""
+from __future__ import annotations
+
 import pandas as pd
 import numpy as np
 import networkx as nx
@@ -5,43 +8,47 @@ import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import os
 
-OUTPUT_DIR = '/Users/prashammarfatia/Downloads/Evidence_Analysis'
+import logging
+
+
+logger = logging.getLogger(__name__)
+OUTPUT_DIR = 'Evidence_Analysis'
 
 
 def load_and_match_pathways(n_pairs=20):
     """Load top N gene pairs from INDRA and find matching OmniPath pathways"""
-    print(f"Loading top {n_pairs} gene pairs from INDRA...")
+    logger.info("Loading top %s gene pairs from INDRA...", n_pairs)
 
     # Load INDRA and get top N pairs
-    indra_df = pd.read_csv('/Users/prashammarfatia/Downloads/indra_3hop_no_hgnc_prefix.csv')
+    indra_df = pd.read_csv('indra_3hop_no_hgnc_prefix.csv')
     indra_clean = indra_df[np.isfinite(indra_df['pval']) & np.isfinite(indra_df['logfoldchange'])].copy()
     indra_top = indra_clean.nsmallest(n_pairs, 'pval').copy()
 
     # Create source-target pair identifier
     indra_top['pair'] = indra_top['source'] + '→' + indra_top['target']
 
-    print(f"Top {n_pairs} INDRA gene pairs selected")
-    print(f"Sample pairs: {list(indra_top['pair'].head(3))}")
+    logger.info("Top %s INDRA gene pairs selected", n_pairs)
+    logger.info("Sample pairs: %s", list(indra_top['pair'].head(3)))
 
     # Load OmniPath
-    print("\nLoading OmniPath data...")
-    omnipath_df = pd.read_csv('/Users/prashammarfatia/Downloads/omnipath_3hop_synthetic.csv')
+    logger.info("\nLoading OmniPath data...")
+    omnipath_df = pd.read_csv('omnipath_3hop_synthetic.csv')
     omnipath_df['pair'] = omnipath_df['source'] + '→' + omnipath_df['target']
 
     # Find matching pairs in OmniPath
     target_pairs = set(indra_top['pair'])
     omnipath_matched = omnipath_df[omnipath_df['pair'].isin(target_pairs)].copy()
 
-    print(f"\nMatching results:")
-    print(f"  INDRA pairs: {len(indra_top)}")
-    print(f"  OmniPath matches found: {len(omnipath_matched)}")
-    print(f"  Pairs with NO OmniPath data: {len(target_pairs) - len(set(omnipath_matched['pair']))}")
+    logger.info("\nMatching results:")
+    logger.info("  INDRA pairs: %s", len(indra_top))
+    logger.info("  OmniPath matches found: %s", len(omnipath_matched))
+    logger.info("  Pairs with NO OmniPath data: %s", len(target_pairs) - len(set(omnipath_matched['pair'])))
 
     # Show which pairs have matches
     matched_pairs = set(omnipath_matched['pair'])
     unmatched_pairs = target_pairs - matched_pairs
     if unmatched_pairs:
-        print(f"\n  Unmatched pairs (first 5): {list(unmatched_pairs)[:5]}")
+        logger.info("\n  Unmatched pairs (first 5): %5]", list(unmatched_pairs)[)
 
     return indra_top, omnipath_matched
 
@@ -70,7 +77,7 @@ def build_matched_network(indra_df, omnipath_df):
     intermediates = set()
 
     # Process INDRA pathways
-    print("\nProcessing INDRA pathways...")
+    logger.info("\nProcessing INDRA pathways...")
     for _, row in indra_df.iterrows():
         source = row['source']
         target = row['target']
@@ -122,7 +129,7 @@ def build_matched_network(indra_df, omnipath_df):
                 edge_pathway_info[edge2] = {'database': 'INDRA', 'pval': pval, 'logfc': logfc, 'pair': pair}
 
     # Process OmniPath pathways (for the SAME pairs)
-    print("Processing OmniPath pathways for matching gene pairs...")
+    logger.info("Processing OmniPath pathways for matching gene pairs...")
     for _, row in omnipath_df.iterrows():
         source = row['source']
         target = row['target']
@@ -174,9 +181,9 @@ def build_matched_network(indra_df, omnipath_df):
     intermediates = intermediates - source_targets
 
     # Analyze pathway agreement
-    print("\n" + "=" * 60)
-    print("PATHWAY COMPARISON FOR SAME GENE PAIRS")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("PATHWAY COMPARISON FOR SAME GENE PAIRS")
+    logger.info("=" * 60)
 
     pairs_with_both = 0
     pairs_same_intermediates = 0
@@ -196,36 +203,36 @@ def build_matched_network(indra_df, omnipath_df):
             else:
                 pairs_different_intermediates += 1
 
-    print(f"\nGene pairs analyzed: {len(pathway_comparison)}")
-    print(f"  Pairs with data from BOTH databases: {pairs_with_both}")
-    print(f"  Pairs using SAME intermediates: {pairs_same_intermediates}")
-    print(f"  Pairs using DIFFERENT intermediates: {pairs_different_intermediates}")
+    logger.info("\nGene pairs analyzed: %s", len(pathway_comparison))
+    logger.info("  Pairs with data from BOTH databases: %s", pairs_with_both)
+    logger.info("  Pairs using SAME intermediates: %s", pairs_same_intermediates)
+    logger.info("  Pairs using DIFFERENT intermediates: %s", pairs_different_intermediates)
 
     if pairs_with_both > 0:
         agreement_rate = 100 * pairs_same_intermediates / pairs_with_both
-        print(f"  Agreement rate: {agreement_rate:.1f}%")
+        logger.info("  Agreement rate: %.1f%%", agreement_rate)
 
     # Edge overlap statistics
     indra_only_edges = sum(1 for sources in edge_sources.values() if sources == {'indra'})
     omnipath_only_edges = sum(1 for sources in edge_sources.values() if sources == {'omnipath'})
     shared_edges = sum(1 for sources in edge_sources.values() if sources == {'indra', 'omnipath'})
 
-    print(f"\nNetwork statistics:")
-    print(f"  Total nodes: {G.number_of_nodes()}")
-    print(f"  Total edges: {G.number_of_edges()}")
-    print(f"  Source/target genes: {len(source_targets)}")
-    print(f"  Intermediate proteins: {len(intermediates)}")
-    print(f"\nEdge overlap:")
-    print(f"  INDRA only: {indra_only_edges}")
-    print(f"  OmniPath only: {omnipath_only_edges}")
-    print(f"  Shared (same edge in both): {shared_edges}")
+    logger.info("\nNetwork statistics:")
+    logger.info("  Total nodes: %s", G.number_of_nodes())
+    logger.info("  Total edges: %s", G.number_of_edges())
+    logger.info("  Source/target genes: %s", len(source_targets))
+    logger.info("  Intermediate proteins: %s", len(intermediates))
+    logger.info("\nEdge overlap:")
+    logger.info("  INDRA only: %s", indra_only_edges)
+    logger.info("  OmniPath only: %s", omnipath_only_edges)
+    logger.info("  Shared (same edge in both): %s", shared_edges)
     if G.number_of_edges() > 0:
-        print(f"  Overlap percentage: {100 * shared_edges / G.number_of_edges():.1f}%")
+        logger.info("  Overlap percentage: %.1f%%", 100 * shared_edges / G.number_of_edges())
 
     # Show some example comparisons
-    print(f"\n" + "=" * 60)
-    print("EXAMPLE PATHWAY COMPARISONS (first 5 pairs with both databases):")
-    print("=" * 60)
+    logger.info("\n" + "=" * 6")
+    logger.info("EXAMPLE PATHWAY COMPARISONS (first 5 pairs with both databases):")
+    logger.info("=" * 60)
     count = 0
     for pair, pathways in sorted(pathway_comparison.items()):
         if len(pathways['indra']) > 0 and len(pathways['omnipath']) > 0:
@@ -233,11 +240,11 @@ def build_matched_network(indra_df, omnipath_df):
             if count <= 5:
                 indra_path = ' → '.join(pathways['indra'])
                 omni_path = ' → '.join(pathways['omnipath'])
-                match = "✓ MATCH" if set(pathways['indra']) == set(pathways['omnipath']) else "✗ DIFFERENT"
-                print(f"\n{pair}")
-                print(f"  INDRA:    {indra_path}")
-                print(f"  OmniPath: {omni_path}")
-                print(f"  {match}")
+                match = " MATCH" if set(pathways['indra']) == set(pathways['omnipath']) else " DIFFERENT"
+                logger.info("\n%s", pair)
+                logger.info("  INDRA:    %s", indra_path)
+                logger.info("  OmniPath: %s", omni_path)
+                logger.info("  %s", match)
 
     return G, source_targets, intermediates, edge_sources, edge_pathway_info, pathway_comparison
 
@@ -380,7 +387,7 @@ def create_interactive_visualization(G, source_targets, intermediates, edge_sour
 
     output_path = f'{OUTPUT_DIR}/network_matched_pairs.html'
     fig.write_html(output_path)
-    print(f"\nVisualization saved: {output_path}")
+    logger.info("\nVisualization saved: %s", output_path)
     return fig
 
 
@@ -450,23 +457,23 @@ def create_static_png(G, source_targets, intermediates, edge_sources):
     plt.tight_layout()
     output_path = f'{OUTPUT_DIR}/network_matched_pairs.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
-    print(f"Static PNG saved: {output_path}")
+    logger.info("Static PNG saved: %s", output_path)
     plt.close()
 
 
 def main():
-    print("=" * 60)
-    print("CORRECT ANALYSIS: Same Gene Pairs Pathway Comparison")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("CORRECT ANALYSIS: Same Gene Pairs Pathway Comparison")
+    logger.info("=" * 60)
 
     # Load top gene pairs from INDRA and find matches in OmniPath
     indra_df, omnipath_df = load_and_match_pathways(n_pairs=20)
 
     if len(omnipath_df) == 0:
-        print("\nWARNING: No matching pathways found in OmniPath!")
-        print("This could mean:")
-        print("  1. OmniPath doesn't have data for these gene pairs")
-        print("  2. The source→target naming doesn't match exactly")
+        logger.info("\nWARNING: No matching pathways found in OmniPath!")
+        logger.info("This could mean:")
+        logger.info("  1. OmniPath doesn't have data for these gene pairs")
+        logger.info("  2. The source→target naming doesn't match exactly")
         return
 
     # Build network comparing pathways for same pairs
@@ -474,21 +481,21 @@ def main():
         indra_df, omnipath_df)
 
     if G.number_of_nodes() == 0:
-        print("ERROR: No valid pathways found!")
+        logger.info("ERROR: No valid pathways found!")
         return
 
     # Create visualizations
-    print("\nGenerating visualizations...")
+    logger.info("\nGenerating visualizations...")
     create_interactive_visualization(G, source_targets, intermediates, edge_sources, edge_pathway_info)
     create_static_png(G, source_targets, intermediates, edge_sources)
 
-    print("\n" + "=" * 60)
-    print("✓ Analysis complete!")
-    print("=" * 60)
-    print("\nFiles generated:")
-    print("  • network_matched_pairs.html (interactive)")
-    print("  • network_matched_pairs.png (publication-ready)")
-    print("\nThis is now a TRUE comparison - same gene pairs, different databases!")
+    logger.info("\n" + "=" * 60)
+    logger.info(" Analysis complete!")
+    logger.info("=" * 60)
+    logger.info("\nFiles generated:")
+    logger.info("  • network_matched_pairs.html (interactive)")
+    logger.info("  • network_matched_pairs.png (publication-ready)")
+    logger.info("\nThis is now a TRUE comparison - same gene pairs, different databases!")
 
 
 if __name__ == "__main__":

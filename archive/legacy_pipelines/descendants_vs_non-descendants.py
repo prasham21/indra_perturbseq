@@ -1,15 +1,19 @@
+"""Legacy script: descendants vs non-descendants."""
+from __future__ import annotations
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ---- EDIT THESE PATHS ----
-REAL_1HOP_CSV = "/Users/prashammarfatia/Downloads/indra_1hop_with_statements__main (2).csv"
-PERM_1HOP_CSV = "/Users/prashammarfatia/Downloads/1hop_PERMUTED.csv"
+import logging
 
-# Thresholds to test (you can change this list)
+logger = logging.getLogger(__name__)
+
+REAL_1HOP_CSV = "indra_1hop_with_statements__main (2).csv"
+PERM_1HOP_CSV = "1hop_PERMUTED.csv"
+
 THRESHOLDS = [0.001, 0.005, 0.01, 0.02, 0.03, 0.04, 0.05]
 
-# If True: count unique (source,target) pairs instead of raw rows
 COUNT_UNIQUE_PAIRS = False
 
 
@@ -34,7 +38,6 @@ def main():
     real_pcol = find_pval_col(real)
     perm_pcol = find_pval_col(perm)
 
-    # Ensure numeric pvals
     real[real_pcol] = pd.to_numeric(real[real_pcol], errors="coerce")
     perm[perm_pcol] = pd.to_numeric(perm[perm_pcol], errors="coerce")
 
@@ -48,12 +51,12 @@ def main():
     out = pd.DataFrame(
         {"pval_threshold": THRESHOLDS, "real_1hop_paths": real_counts, "permuted_1hop_paths": perm_counts}
     )
-    print(out)
+    logger.info(out)
 
     plt.figure(figsize=(7, 4.5))
     plt.plot(THRESHOLDS, real_counts, marker="o", linewidth=2, label="Real 1-hop")
     plt.plot(THRESHOLDS, perm_counts, marker="o", linewidth=2, label="Permuted 1-hop")
-    plt.xlabel("DEG p-value threshold (keep rows with pval ≤ threshold)")
+    plt.xlabel("DEG p-value threshold (keep rows with pval <= threshold)")
     plt.ylabel("Number of 1-hop paths" + (" (unique source-target)" if COUNT_UNIQUE_PAIRS else " (rows)"))
     plt.title("1-hop paths vs DEG p-value threshold")
     plt.grid(True, linestyle="--", alpha=0.4)

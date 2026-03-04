@@ -1,27 +1,29 @@
-import pandas as pd
+"""Superseded legacy script for adding evidence text and PMIDs to 1-hop results.
+
+Refactored into src/indra_perturbseq/pipelines/.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import logging
 import os
 import re
 import time
-import logging
-import json
 from collections import OrderedDict
+
+import pandas as pd
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra_cogex.client.queries import get_statements
 from indra.databases import hgnc_client
 
-# ==============================
-# CONFIGURATION
-# ==============================
-INPUT_FILE = "/Users/prashammarfatia/Downloads/indra_1hop_gene_names_cleaned.csv"
-OUTPUT_FILE = "/Users/prashammarfatia/Downloads/indra_1hop_with_statements_7.csv"
+logger = logging.getLogger(__name__)
 
 logging.getLogger().setLevel(logging.ERROR)
+
 client = Neo4jClient()
 
 
-# ==============================
-# IDENTIFIER + GENE NAME CLEANUP
-# ==============================
 def normalize_gene_symbol(symbol):
     if not symbol or pd.isna(symbol):
         return symbol
@@ -39,9 +41,6 @@ def process_identifier(agent_str, *, for_query=False):
     return agent_str if for_query else f"HGNC:{agent_str}"
 
 
-# ==============================
-# DATABASE SOURCE + PMID EXTRACTION
-# ==============================
 def get_evidence_info(agent1, agent2, stmt_type):
     try:
         hgnc_id1 = hgnc_client.get_current_hgnc_id(agent1)
@@ -71,12 +70,12 @@ def get_evidence_info(agent1, agent2, stmt_type):
         for result in results:
             try:
                 evidence_data = json.loads(result[0])
-                pmid = evidence_data.get('pmid')
+                pmid = evidence_data.get("pmid")
                 if pmid:
                     pmids_seen.add(str(pmid))
 
-                source_api = evidence_data.get('source_api', '')
-                source_sub_id = evidence_data.get('annotations', {}).get('source_sub_id', '')
+                source_api = evidence_data.get("source_api", "")
+                source_sub_id = evidence_data.get("annotations", {}).get("source_sub_id", "")
 
                 if source_sub_id:
                     key = f"{source_api}:{source_sub_id}"
@@ -93,7 +92,8 @@ def get_evidence_info(agent1, agent2, stmt_type):
 
         db_info = (
             f"Evidence from: {', '.join(sources_seen.keys())}"
-            if sources_seen else "No evidence found"
+            if sources_seen
+            else "No evidence found"
         )
 
         pmids = sorted(pmids_seen, key=lambda x: int(x) if x.isdigit() else x)
@@ -108,9 +108,6 @@ def get_database_source(agent1, agent2, stmt_type):
     return db_info
 
 
-# ==============================
-# EVIDENCE FETCHING
-# ==============================
 def fetch_evidence_text(agent1, agent2, stmt_type):
     try:
         stmts = get_statements(
@@ -121,7 +118,7 @@ def fetch_evidence_text(agent1, agent2, stmt_type):
             rel_types=stmt_type,
             limit=50,
             evidence_limit=50,
-            client=client
+            client=client,
         )
 
         if not stmts:
@@ -142,9 +139,6 @@ def fetch_evidence_text(agent1, agent2, stmt_type):
         return f"Error fetching evidence: {e}"
 
 
-# ==============================
-# TEXT FORMATTING
-# ==============================
 def format_evidence_text(text):
     if not isinstance(text, str):
         return text
@@ -152,7 +146,7 @@ def format_evidence_text(text):
     if text.startswith("Evidence from:") or text.startswith("No evidence found"):
         return text
 
-    pattern = r'(^|\n|; )(\d+\.\s)'
+    pattern = r"(^|\n|; )(\d+\.\s)"
     parts = []
     last_idx = 0
 
@@ -164,20 +158,26 @@ def format_evidence_text(text):
 
     parts.append(text[last_idx:].strip())
 
-    formatted = [re.sub(r'^(\d+)\.\s', r'\1) ', part) for part in parts]
+    formatted = [re.sub(r"^(\d+)\.\s", r"\1) ", part) for part in parts]
     return "\n\n".join(formatted)
 
 
-# ==============================
-# MAIN
-# ==============================
 def main():
-    start_time = time.time()
-    print("Loading input...")
-    df = pd.read_excel(INPUT_FILE) if INPUT_FILE.endswith(('.xls', '.xlsx')) else pd.read_csv(INPUT_FILE)
-    print(f"Total rows: {len(df)}")
+    parser = argparse.ArgumentParser(description="Add evidence text and PMIDs to 1-hop results")
+    parser.add_argument("--input", required=True, help="Input CSV or Excel file")
+    parser.add_argument("--output", required=True, help="Output CSV path")
+    args = parser.parse_args()
 
-    print("Normalizing gene names...")
+    start_time = time.time()
+    logger.info("Loading input...")
+    df = (
+        pd.read_excel(args.input)
+        if args.input.endswith((".xls", ".xlsx"))
+        else pd.read_csv(args.input)
+    )
+    logger.info("Total rows: %d", len(df))
+
+    logger.info("Normalizing gene names...")
     df["source"] = df["source"].apply(normalize_gene_symbol)
     df["target"] = df["target"].apply(normalize_gene_symbol)
 
@@ -186,7 +186,7 @@ def main():
     if "pmids" not in df.columns:
         df["pmids"] = ""
 
-    print("Extracting evidence text and PMIDs...")
+    logger.info("Extracting evidence text and PMIDs...")
     for idx, row in df.iterrows():
         if pd.isna(row["evidence_text"]) or not str(row["evidence_text"]).strip():
             evidence_text = fetch_evidence_text(row["source"], row["target"], row["stmt_type"])
@@ -198,36 +198,43 @@ def main():
             df.at[idx, "pmids"] = pmids_str
 
         if idx % 10 == 0:
-            print(f"Processed {idx + 1}/{len(df)} rows")
+            logger.info("Processed %d/%d rows", idx + 1, len(df))
 
-    print("Formatting evidence text...")
+    logger.info("Formatting evidence text...")
     df["evidence_text"] = df["evidence_text"].apply(format_evidence_text)
 
-    # Reorder columns
-    if 'statement_text' in df.columns:
+    if "statement_text" in df.columns:
         cols = df.columns.tolist()
-        stmt_idx = cols.index('statement_text')
-        for col in ['evidence_text', 'pmids']:
+        stmt_idx = cols.index("statement_text")
+        for col in ["evidence_text", "pmids"]:
             if col in cols:
                 cols.remove(col)
-        cols.insert(stmt_idx + 1, 'evidence_text')
-        cols.insert(stmt_idx + 2, 'pmids')
+        cols.insert(stmt_idx + 1, "evidence_text")
+        cols.insert(stmt_idx + 2, "pmids")
         df = df[cols]
 
-    df['pmids'] = df['pmids'].astype(str).replace('nan', '').replace('None', '')
+    df["pmids"] = df["pmids"].astype(str).replace("nan", "").replace("None", "")
 
-    df.to_csv(OUTPUT_FILE, index=False)
+    df.to_csv(args.output, index=False)
 
     total_time = (time.time() - start_time) / 60
     pmid_count = sum(1 for x in df["pmids"] if x.strip())
-    db_evidence_count = sum(1 for x in df["evidence_text"] if str(x).startswith("Evidence from:") or str(x) == "No evidence found")
+    db_evidence_count = sum(
+        1
+        for x in df["evidence_text"]
+        if str(x).startswith("Evidence from:") or str(x) == "No evidence found"
+    )
 
-    print(f"\nOutput saved to: {OUTPUT_FILE}")
-    print(f"Time elapsed: {total_time:.2f} minutes")
-    print("Summary:")
-    print(f"   Rows with PMIDs: {pmid_count}/{len(df)} ({pmid_count/len(df)*100:.1f}%)")
-    print(f"   Rows with fallback evidence: {db_evidence_count}/{len(df)} ({db_evidence_count/len(df)*100:.1f}%)")
+    logger.info("Output saved to: %s", args.output)
+    logger.info("Time elapsed: %.2f minutes", total_time)
+    logger.info("Summary:")
+    logger.info("  Rows with PMIDs: %d/%d (%.1f%%)", pmid_count, len(df), pmid_count / len(df) * 100)
+    logger.info(
+        "  Rows with fallback evidence: %d/%d (%.1f%%)",
+        db_evidence_count, len(df), db_evidence_count / len(df) * 100,
+    )
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

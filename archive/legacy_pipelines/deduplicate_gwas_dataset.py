@@ -1,34 +1,16 @@
-"""
-COMBINE + STRICT DEDUPE + SPLIT (GWAS sources / GWAS targets)
-- Uses column ORDER from the FIRST file: gwas_endothelial_paths_url_enriched.csv
-- Drops pval_col_used everywhere
-- Combines FIRST file + SECOND file, then de-dupes on (source,target)
-- STRICT mode (default): keeps only rows where hop2 is "strong":
-    * hop2_hash non-empty
-    * hop2 evidence is structured OR starts with "Evidence from:"
-    * optionally require pmids_hop2 (enable with --require-hop2-pmids)
-  If a (source,target) pair has no such row, it is dropped.
-- Outputs 3 CSVs:
-    1) combined strict-deduped
-    2) GWAS genes as sources
-    3) GWAS genes as targets
+"""Legacy script: combine + strict deduplicate + split GWAS datasets."""
+from __future__ import annotations
 
-Run example:
-python combine_gwas_datsets_strict.py \
-  --one-stop-csv "/Users/prashammarfatia/Downloads/2hop_mesh_reference_filtered_unique_source_target.csv" \
-  --gwas-url-enriched-csv "/Users/prashammarfatia/Downloads/gwas_endothelial_paths_url_enriched.csv" \
-  --out-combined "/Users/prashammarfatia/Downloads/combined_deduped_STRICT.csv" \
-  --out-gwas-sources "/Users/prashammarfatia/Downloads/combined_deduped_STRICT_gwas_sources.csv" \
-  --out-gwas-targets "/Users/prashammarfatia/Downloads/combined_deduped_STRICT_gwas_targets.csv" \
-  --require-hop2-pmids
-"""
 
 import argparse
 import re
 import pandas as pd
 
+import logging
 
-# ---- GWAS genes (49) ----
+
+logger = logging.getLogger(__name__)
+
 GWAS_GENES = {
     "ARHGEF26",
     "BCAR1",
@@ -90,14 +72,12 @@ def is_nonempty(x) -> bool:
 
 
 def looks_like_structured_evidence(text: str) -> bool:
-    # Your formatted evidence tends to contain "1) ..."
     if not is_nonempty(text):
         return False
     return bool(re.search(r"(^|\n)\s*1\)\s+", str(text)))
 
 
 def evidence_ok_strict(text: str) -> bool:
-    # acceptable: structured evidence OR explicit DB provenance
     if not is_nonempty(text):
         return False
     s = str(text).strip()
@@ -121,15 +101,15 @@ def safe_float(x, default=0.0) -> float:
 
 
 def print_file_stats(df: pd.DataFrame, title: str):
-    print(f"\n### {title}")
-    print(f"- rows: {len(df):,}")
-    print(f"- cols: {len(df.columns):,}")
-    print(f"- columns: {df.columns.tolist()}")
+    logger.info("\n### %s", title)
+    logger.info("- rows: %d", len(df))
+    logger.info("- cols: %d", len(df.columns))
+    logger.info("- columns: %s", df.columns.tolist())
     key = ["evidence_text_hop1", "pmids_hop1", "hop1_indra_url", "evidence_text_hop2", "pmids_hop2", "hop2_indra_url"]
     present = [c for c in key if c in df.columns]
     for c in present:
         nn = df[c].apply(is_nonempty).sum()
-        print(f"  - {c}: non-empty {nn:,}/{len(df):,} ({nn/len(df)*100:.1f}%)")
+        logger.info("  - %s: non-empty %d/%d (%.1f%%)", c, nn, len(df), nn/len(df)*100)
 
 
 def report_column_mismatches(df1: pd.DataFrame, df2: pd.DataFrame, name1: str, name2: str):
@@ -137,17 +117,13 @@ def report_column_mismatches(df1: pd.DataFrame, df2: pd.DataFrame, name1: str, n
     s2 = set(df2.columns)
     only1 = sorted(s1 - s2)
     only2 = sorted(s2 - s1)
-    print(f"\n### Column comparison")
-    print(f"- {name1} only: {only1 if only1 else 'None'}")
-    print(f"- {name2} only: {only2 if only2 else 'None'}")
+    logger.info("\n### Column comparison")
+    logger.info("- %s only: %s", name1, only1 if only1 else 'None')
+    logger.info("- %s only: %s", name2, only2 if only2 else 'None')
 
 
 def ensure_schema(df: pd.DataFrame, a_cols: list[str]) -> pd.DataFrame:
-    """
-    Make sure df has at least all columns in A (first file).
-    Any missing columns are created as empty strings.
-    Also drop pval_col_used.
-    """
+    """Ensure df has at least all columns in a_cols; fill missing with empty strings."""
     df = df.copy()
     df = df.drop(columns=["pval_col_used"], errors="ignore")
 
@@ -155,11 +131,9 @@ def ensure_schema(df: pd.DataFrame, a_cols: list[str]) -> pd.DataFrame:
         if c not in df.columns:
             df[c] = ""
 
-    # Ensure numeric logfoldchange if present
     if "logfoldchange" in df.columns:
         df["logfoldchange"] = pd.to_numeric(df["logfoldchange"], errors="coerce")
 
-    # Ensure GWAS_genes_in_path exists and populated
     if "GWAS_genes_in_path" in df.columns:
         missing_or_empty = (~df["GWAS_genes_in_path"].apply(is_nonempty))
     else:
@@ -182,23 +156,17 @@ def ensure_schema(df: pd.DataFrame, a_cols: list[str]) -> pd.DataFrame:
 
 
 def hop2_strict_ok(row: pd.Series, require_pmids: bool) -> bool:
-    # hop2_hash must be present
     if not is_nonempty(row.get("hop2_hash", "")):
         return False
-    # hop2 evidence must be structured or "Evidence from:"
     if not evidence_ok_strict(row.get("evidence_text_hop2", "")):
         return False
-    # optionally require PMIDs
     if require_pmids and (not is_nonempty(row.get("pmids_hop2", ""))):
         return False
     return True
 
 
 def row_quality_score(row: pd.Series) -> float:
-    """
-    Score used AFTER strict hop2 filter.
-    Still prefers more complete rows & stronger signals.
-    """
+    """Score used after strict hop2 filter; prefers more complete rows."""
     url1 = is_valid_indra_url(row.get("hop1_indra_url", ""))
     url2 = is_valid_indra_url(row.get("hop2_indra_url", ""))
 
@@ -210,7 +178,6 @@ def row_quality_score(row: pd.Series) -> float:
     pm1 = is_nonempty(row.get("pmids_hop1", ""))
     pm2 = is_nonempty(row.get("pmids_hop2", ""))
 
-    # completeness over A's schema columns (since we will output in that order)
     completeness = 0
     for c in row.index:
         if is_nonempty(row.get(c, "")):
@@ -234,18 +201,16 @@ def dedupe_by_source_target_strict(df: pd.DataFrame, require_hop2_pmids: bool) -
     df = df.copy()
     before_all = len(df)
 
-    # STRICT hop2 eligibility filter FIRST
     df["_hop2_ok"] = df.apply(lambda r: hop2_strict_ok(r, require_pmids=require_hop2_pmids), axis=1)
     df = df[df["_hop2_ok"]].copy()
     after_filter = len(df)
 
-    print(f"\n### Strict hop2 filter")
-    print(f"- before: {before_all:,}")
-    print(f"- after strict-hop2: {after_filter:,} ({after_filter/before_all*100:.1f}%)")
+    logger.info("\n### Strict hop2 filter")
+    logger.info("- before: %d", before_all)
+    logger.info("- after strict-hop2: %d (%.1f%%)", after_filter, after_filter/before_all*100)
     if after_filter == 0:
         raise RuntimeError("No rows left after strict hop2 filtering. Relax criteria (or disable --require-hop2-pmids).")
 
-    # Score and dedupe
     df["_score"] = df.apply(row_quality_score, axis=1)
     df["_abs_lfc"] = df["logfoldchange"].apply(lambda x: abs(safe_float(x, default=0.0)))
 
@@ -257,24 +222,20 @@ def dedupe_by_source_target_strict(df: pd.DataFrame, require_hop2_pmids: bool) -
 
     out.drop(columns=["_hop2_ok", "_score", "_abs_lfc"], inplace=True, errors="ignore")
 
-    print(f"\n### De-dup (source,target) [STRICT]")
-    print(f"- candidates before dedupe: {before:,}")
-    print(f"- unique pairs after:       {after:,}")
-    print(f"- reduced:                 {before-after:,} ({(before-after)/before*100:.1f}%)")
+    logger.info("\n### De-dup (source,target) [STRICT]")
+    logger.info("- candidates before dedupe: %d", before)
+    logger.info("- unique pairs after:       %d", after)
+    logger.info("- reduced:                 %d (%.1f%%)", before-after, (before-after)/before*100)
 
     hop2_url_ok = out["hop2_indra_url"].apply(is_valid_indra_url).sum() if "hop2_indra_url" in out.columns else 0
     pm2_ok = out["pmids_hop2"].apply(is_nonempty).sum() if "pmids_hop2" in out.columns else 0
-    print(f"- kept rows with valid hop2 url (format): {hop2_url_ok:,}/{after:,} ({hop2_url_ok/after*100:.1f}%)")
-    print(f"- kept rows with hop2 pmids:              {pm2_ok:,}/{after:,} ({pm2_ok/after*100:.1f}%)")
+    logger.info("- kept rows with valid hop2 url (format): %d/%d (%.1f%%)", hop2_url_ok, after, hop2_url_ok/after*100)
+    logger.info("- kept rows with hop2 pmids:              %d/%d (%.1f%%)", pm2_ok, after, pm2_ok/after*100)
     return out
 
 
 def reorder_like_a(df: pd.DataFrame, a_cols: list[str]) -> pd.DataFrame:
-    """
-    Output must match column order of file A exactly.
-    Also ensures pval_col_used is absent.
-    Drops any extra columns not in A.
-    """
+    """Output matching column order of file A exactly, dropping extras."""
     df = df.copy()
     df = df.drop(columns=["pval_col_used"], errors="ignore")
     keep = [c for c in a_cols if c in df.columns]
@@ -291,11 +252,9 @@ def main():
     ap.add_argument("--require-hop2-pmids", action="store_true", help="Also require pmids_hop2 non-empty (strictest).")
     args = ap.parse_args()
 
-    # Load A first (requested)
     df_a = pd.read_csv(args.gwas_url_enriched_csv, low_memory=False)
     df_b = pd.read_csv(args.one_stop_csv, low_memory=False)
 
-    # Drop pval_col_used early (latter part first)
     df_a = df_a.drop(columns=["pval_col_used"], errors="ignore")
     df_b = df_b.drop(columns=["pval_col_used"], errors="ignore")
 
@@ -305,35 +264,26 @@ def main():
     print_file_stats(df_b, "ONE-STOP (B, second)")
     report_column_mismatches(df_a, df_b, "A", "B")
 
-    # Ensure both have at least A's schema columns
     df_a = ensure_schema(df_a, a_cols=a_cols)
     df_b = ensure_schema(df_b, a_cols=a_cols)
 
-    # Combine A first
     combined = pd.concat([df_a, df_b], ignore_index=True)
     print_file_stats(combined, "COMBINED (before strict filter/dedupe)")
 
-    # Strict dedupe (drops pairs with no strong hop2)
     combined_unique = dedupe_by_source_target_strict(combined, require_hop2_pmids=args.require_hop2_pmids)
-
-    # Enforce output column order EXACTLY like A
     combined_unique = reorder_like_a(combined_unique, a_cols=a_cols)
-
-    # Save combined
     combined_unique.to_csv(args.out_combined, index=False)
-    print(f"\nSaved combined strict deduped -> {args.out_combined} (rows={len(combined_unique):,})")
+    logger.info("\nSaved combined strict deduped -> %s (rows=%d)", args.out_combined, len(combined_unique))
 
-    # Split 1: GWAS genes are sources
     gwas_sources = combined_unique[combined_unique["source"].astype(str).isin(GWAS_GENES)].copy()
     gwas_sources = reorder_like_a(gwas_sources, a_cols=a_cols)
     gwas_sources.to_csv(args.out_gwas_sources, index=False)
-    print(f"Saved GWAS-as-source -> {args.out_gwas_sources} (rows={len(gwas_sources):,})")
+    logger.info("Saved GWAS-as-source -> %s (rows=%d)", args.out_gwas_sources, len(gwas_sources))
 
-    # Split 2: GWAS genes are targets
     gwas_targets = combined_unique[combined_unique["target"].astype(str).isin(GWAS_GENES)].copy()
     gwas_targets = reorder_like_a(gwas_targets, a_cols=a_cols)
     gwas_targets.to_csv(args.out_gwas_targets, index=False)
-    print(f"Saved GWAS-as-target -> {args.out_gwas_targets} (rows={len(gwas_targets):,})")
+    logger.info("Saved GWAS-as-target -> %s (rows=%d)", args.out_gwas_targets, len(gwas_targets))
 
 
 if __name__ == "__main__":

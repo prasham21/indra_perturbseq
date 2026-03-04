@@ -1,51 +1,6 @@
-"""
-INDRA multi-hop path discovery — production-grade CLI tool.
+"""INDRA multi-hop path discovery — production-grade CLI tool."""
+from __future__ import annotations
 
-Discovers 1-hop, 2-hop, and/or 3-hop paths from any source gene(s) to
-targets within a gene whitelist (e.g. endothelial universe), then annotates
-each target with DEG statistics from a pre-computed bulk or single-cell
-RNA-seq result file.
-
-No p-value threshold is applied during path discovery — DEG stats are
-annotations only. Waterfall exclusion ensures targets explained at a lower
-hop are not repeated at higher hops (can be disabled with --no-waterfall).
-
-Run examples
-------------
-# Minimal — all 3 hops, 6 validation genes
-python indra_multihop.py \\
-    --graph-pkl  /path/to/indranet_dir_graph_fix_corr_weights.pkl \\
-    --endo-list  /path/to/endothelial_present_plus_manual.csv \\
-    --deg-dir    /path/to/de_results \\
-    --out-dir    /path/to/output \\
-    --genes      CCM2 KLF2 MAP2K5
-
-# Read genes from a CSV file instead
-python indra_multihop.py \\
-    --graph-pkl  /path/to/graph.pkl \\
-    --endo-list  /path/to/endo.csv \\
-    --deg-dir    /path/to/degs \\
-    --out-dir    /path/to/output \\
-    --genes-csv  /path/to/gene_list.csv --gene-col Gene
-
-# Only run 1-hop and 2-hop, skip 3-hop
-    --hops 1 2
-
-# Turn off waterfall (allow targets to appear at multiple hops)
-    --no-waterfall
-
-# Combine all genes into one output file instead of one file per gene
-    --combine-output
-
-# Run 4 genes in parallel
-    --workers 4
-
-# Allow up to 3 paths per source-target pair in 3-hop
-    --max-paths-3hop 3
-
-# Use FDR-adjusted p-value column instead of raw p-value for DEG annotation
-    --prefer-fdr
-"""
 
 import argparse
 import logging
@@ -62,7 +17,7 @@ import pandas as pd
 from indra.databases import hgnc_client
 
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+#  Constants 
 
 INCDEC = {"IncreaseAmount", "DecreaseAmount"}
 
@@ -79,7 +34,7 @@ COLUMN_ORDER = [
 log = logging.getLogger("indra_multihop")
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+#  CLI 
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
@@ -88,7 +43,7 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # ── Required paths ────────────────────────────────────────────────────────
+    #  Required paths 
     req = ap.add_argument_group("required paths")
     req.add_argument("--graph-pkl",  required=True, metavar="PATH",
                      help="INDRA network export pickle "
@@ -102,27 +57,27 @@ def parse_args() -> argparse.Namespace:
     req.add_argument("--out-dir",    required=True, metavar="PATH",
                      help="Output folder")
 
-    # ── Gene input (one of the two must be supplied) ──────────────────────────
+    #  Gene input (one of the two must be supplied) 
     gene_src = ap.add_argument_group(
-        "source genes (supply exactly one of --genes or --genes-csv)"
+        "source genes (supply exactly one of --genes or --source-genes-csv)"
     )
     gene_src.add_argument("--genes",     nargs="+", metavar="GENE",
                           help="One or more gene symbols, e.g. CCM2 KLF2 MAP2K5")
-    gene_src.add_argument("--genes-csv", metavar="PATH",
+    gene_src.add_argument("--source-genes-csv", metavar="PATH",
                           help="CSV file containing source genes")
-    gene_src.add_argument("--gene-col",  default="Gene", metavar="COL",
-                          help="Column name in --genes-csv that holds gene symbols")
+    gene_src.add_argument("--gene-column",  default="Gene", metavar="COL",
+                          help="Column name in --source-genes-csv that holds gene symbols")
     gene_src.add_argument("--flag-col",  default=None, metavar="COL",
-                          help="Optional column in --genes-csv to filter rows by")
+                          help="Optional column in --source-genes-csv to filter rows by")
     gene_src.add_argument("--flag-val",  default=None, metavar="VAL",
                           help="Value that --flag-col must equal to include row")
 
-    # ── Whitelist options ─────────────────────────────────────────────────────
+    #  Whitelist options 
     wl = ap.add_argument_group("whitelist options")
     wl.add_argument("--endo-col", default="gene", metavar="COL",
                     help="Column name in --endo-list that holds gene symbols")
 
-    # ── Hop options ───────────────────────────────────────────────────────────
+    #  Hop options 
     hop = ap.add_argument_group("hop options")
     hop.add_argument("--hops", nargs="+", type=int, choices=[1, 2, 3],
                      default=[1, 2, 3], metavar="{1,2,3}",
@@ -134,13 +89,13 @@ def parse_args() -> argparse.Namespace:
                      help="Max paths per (source, target) pair in 3-hop. "
                           "Keeps highest last-hop belief path(s). 0 = no limit")
 
-    # ── DEG annotation options ────────────────────────────────────────────────
+    #  DEG annotation options 
     deg = ap.add_argument_group("DEG annotation")
     deg.add_argument("--prefer-fdr", action="store_true",
                      help="Prefer FDR-adjusted p-value column over raw p-value "
                           "when both exist in the DEG file")
 
-    # ── Output options ────────────────────────────────────────────────────────
+    #  Output options 
     out = ap.add_argument_group("output options")
     out.add_argument("--combine-output", action="store_true",
                      help="Write a single combined CSV for all genes instead of "
@@ -149,13 +104,13 @@ def parse_args() -> argparse.Namespace:
                      metavar="FILENAME",
                      help="Filename used when --combine-output is set")
 
-    # ── Performance ───────────────────────────────────────────────────────────
+    #  Performance 
     perf = ap.add_argument_group("performance")
     perf.add_argument("--workers", type=int, default=1, metavar="N",
                       help="Number of parallel workers for processing genes. "
                            "Set > 1 only when running many source genes")
 
-    # ── Logging ───────────────────────────────────────────────────────────────
+    #  Logging 
     ap.add_argument("--verbose", action="store_true",
                     help="Enable DEBUG-level logging")
 
@@ -164,11 +119,11 @@ def parse_args() -> argparse.Namespace:
 
 def validate_args(args: argparse.Namespace) -> None:
     """Validate argument combinations and file existence early."""
-    if not args.genes and not args.genes_csv:
-        log.error("Supply either --genes or --genes-csv")
+    if not args.genes and not args.source_genes_csv:
+        log.error("Supply either --genes or --source-genes-csv")
         sys.exit(1)
-    if args.genes and args.genes_csv:
-        log.error("--genes and --genes-csv are mutually exclusive")
+    if args.genes and args.source_genes_csv:
+        log.error("--genes and --source-genes-csv are mutually exclusive")
         sys.exit(1)
     for label, path in [
         ("--graph-pkl",  args.graph_pkl),
@@ -178,12 +133,12 @@ def validate_args(args: argparse.Namespace) -> None:
         if not os.path.exists(path):
             log.error(f"{label} path not found: {path}")
             sys.exit(1)
-    if args.genes_csv and not os.path.exists(args.genes_csv):
-        log.error(f"--genes-csv not found: {args.genes_csv}")
+    if args.source_genes_csv and not os.path.exists(args.source_genes_csv):
+        log.error(f"--source-genes-csv not found: {args.source_genes_csv}")
         sys.exit(1)
 
 
-# ── Graph helpers ─────────────────────────────────────────────────────────────
+#  Graph helpers 
 
 def _install_numpy_dtype_shims() -> None:
     if not hasattr(np, "sctypeDict"):
@@ -252,14 +207,14 @@ def load_gene_whitelist(path: str, col: str) -> set:
 def load_source_genes(args: argparse.Namespace) -> list[tuple[str, str]]:
     """
     Returns list of (raw_symbol, normalized_symbol) tuples.
-    Source is either --genes list or --genes-csv file.
+    Source is either --genes list or --source-genes-csv file.
     """
     if args.genes:
         raw_genes = [g.strip() for g in args.genes if g.strip()]
     else:
-        df = pd.read_csv(args.genes_csv, low_memory=False)
-        if args.gene_col not in df.columns:
-            log.error(f"Column '{args.gene_col}' not in {args.genes_csv}. "
+        df = pd.read_csv(args.source_genes_csv, low_memory=False)
+        if args.gene_column not in df.columns:
+            log.error(f"Column '{args.gene_column}' not in {args.source_genes_csv}. "
                       f"Available: {df.columns.tolist()}")
             sys.exit(1)
         if args.flag_col and args.flag_val:
@@ -267,7 +222,7 @@ def load_source_genes(args: argparse.Namespace) -> list[tuple[str, str]]:
                 df = df[df[args.flag_col] == args.flag_val]
             else:
                 log.warning(f"--flag-col '{args.flag_col}' not found — ignoring filter")
-        raw_genes = [str(x).strip() for x in df[args.gene_col].dropna()
+        raw_genes = [str(x).strip() for x in df[args.gene_column].dropna()
                      if str(x).strip()]
 
     pairs = [(raw, normalize_hgnc_symbol(raw)) for raw in raw_genes]
@@ -275,7 +230,7 @@ def load_source_genes(args: argparse.Namespace) -> list[tuple[str, str]]:
     return pairs
 
 
-# ── Statement helpers ─────────────────────────────────────────────────────────
+#  Statement helpers 
 
 def best_statement(edge_data: dict, require_incdec: bool) -> Optional[dict]:
     """Highest belief (tie-break: evidence_count) statement from an edge."""
@@ -311,7 +266,7 @@ def indra_url(stmt_hash) -> str:
     return ""
 
 
-# ── DEG annotation ────────────────────────────────────────────────────────────
+#  DEG annotation 
 
 def _pick_pval_col(df: pd.DataFrame, prefer_fdr: bool) -> str:
     fdr_cols = ["pvals_adj", "padj", "qval", "fdr", "p_adj"]
@@ -369,7 +324,7 @@ def load_full_deg_map(deg_dir: str, raw_gene: str,
     return deg_map
 
 
-# ── Row factory ───────────────────────────────────────────────────────────────
+#  Row factory 
 
 def _deg_annotation(deg_map: dict, target: str) -> dict:
     d = deg_map.get(target, {})
@@ -409,7 +364,7 @@ def make_row(hop: int, src: str, tgt: str, deg_map: dict,
     return row
 
 
-# ── Path extraction ───────────────────────────────────────────────────────────
+#  Path extraction 
 
 def run_1hop(G, src: str, whitelist: set,
              deg_map: dict) -> tuple[list[dict], set]:
@@ -500,7 +455,7 @@ def run_3hop(G, src: str, whitelist: set, deg_map: dict,
     return rows
 
 
-# ── Per-gene orchestration ────────────────────────────────────────────────────
+#  Per-gene orchestration 
 
 def process_gene(
     raw_gene: str,
@@ -527,7 +482,7 @@ def process_gene(
     excluded: set = set()
     all_rows: list[dict] = []
 
-    # ── 1-hop ─────────────────────────────────────────────────────────────────
+    #  1-hop 
     if 1 in args.hops:
         t0 = time.time()
         rows_1, found_1 = run_1hop(G, gene, whitelist, deg_map)
@@ -539,7 +494,7 @@ def process_gene(
     else:
         log.debug(f"[{raw_gene}] 1-hop skipped")
 
-    # ── 2-hop ─────────────────────────────────────────────────────────────────
+    #  2-hop 
     if 2 in args.hops:
         t0 = time.time()
         rows_2, found_2 = run_2hop(G, gene, whitelist, deg_map,
@@ -552,7 +507,7 @@ def process_gene(
     else:
         log.debug(f"[{raw_gene}] 2-hop skipped")
 
-    # ── 3-hop ─────────────────────────────────────────────────────────────────
+    #  3-hop 
     if 3 in args.hops:
         t0 = time.time()
         rows_3 = run_3hop(G, gene, whitelist, deg_map,
@@ -580,7 +535,7 @@ def process_gene(
     return df
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#  Main 
 
 def main() -> None:
     args = parse_args()
@@ -611,7 +566,7 @@ def main() -> None:
              f"(0 = unlimited)")
     log.info(f"Workers       : {args.workers}")
 
-    # ── Process genes (sequentially or in parallel) ───────────────────────────
+    #  Process genes (sequentially or in parallel) 
     results: dict[str, pd.DataFrame] = {}  # raw_gene -> DataFrame
 
     def _job(raw_gene: str, gene: Optional[str]):
@@ -636,7 +591,7 @@ def main() -> None:
         log.error("No results produced for any gene. Exiting.")
         sys.exit(1)
 
-    # ── Write output ──────────────────────────────────────────────────────────
+    #  Write output 
     if args.combine_output:
         combined = pd.concat(list(results.values()), ignore_index=True)
         out_path = os.path.join(args.out_dir, args.out_filename)

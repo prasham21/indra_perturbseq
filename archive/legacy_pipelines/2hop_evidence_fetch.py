@@ -1,39 +1,31 @@
-import pandas as pd
+"""Superseded legacy script for fetching evidence text for 2-hop results.
+
+Refactored into src/indra_perturbseq/pipelines/.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import logging
 import os
 import re
 import time
-import logging
-import json
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from threading import local
+
+import pandas as pd
 
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra_cogex.client.queries import get_statements
 from indra.databases import hgnc_client
 
-# ==============================
-# CONFIGURATION
-# ==============================
-INPUT_FILE = "/Users/prashammarfatia/Downloads/cleaned_indra_2hop_all_perturbations.csv"
-OUTPUT_FILE = "/Users/prashammarfatia/Downloads/indra_2hop_with_evidence_statements_.csv"
-CHECKPOINT_DIR = "/Users/prashammarfatia/Downloads/2hop_checkpoints/"
-os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-
-# Concurrency & logging/checkpoint cadence
-MAX_WORKERS = 5
-HEARTBEAT_SECS = 10
-LOG_EVERY = 100
-CHECKPOINT_EVERY = 1000
-
-START_INDEX = 8500
+logger = logging.getLogger(__name__)
 
 logging.getLogger().setLevel(logging.ERROR)
 
-# ==============================
-# THREAD-LOCAL NEO4J CLIENT
-# ==============================
 _thread_state = local()
+
 
 def get_thread_client():
     """Reuse one Neo4jClient per thread to avoid exhausting the connection pool."""
@@ -42,9 +34,6 @@ def get_thread_client():
     return _thread_state.client
 
 
-# ==============================
-# SYMBOL NORMALIZATION
-# ==============================
 def normalize_gene_symbol(symbol):
     if not symbol or pd.isna(symbol):
         return symbol
@@ -61,11 +50,8 @@ def process_identifier(agent_str, *, for_query=False):
     return agent_str if for_query else f"HGNC:{agent_str}"
 
 
-# ==============================
-# EVIDENCE UTILITIES
-# ==============================
 def get_evidence_info(agent1, agent2, stmt_type, client):
-    """Collect source APIs and PMIDs via Cypher on stmt_hash → Evidence."""
+    """Collect source APIs and PMIDs via Cypher on stmt_hash -> Evidence."""
     try:
         hgnc_id1 = hgnc_client.get_current_hgnc_id(agent1)
         hgnc_id2 = hgnc_client.get_current_hgnc_id(agent2)
@@ -82,7 +68,7 @@ def get_evidence_info(agent1, agent2, stmt_type, client):
             query,
             source_id=f"hgnc:{hgnc_id1}",
             target_id=f"hgnc:{hgnc_id2}",
-            stmt_type=stmt_type
+            stmt_type=stmt_type,
         )
         if not results:
             return "No evidence found", []
@@ -96,12 +82,12 @@ def get_evidence_info(agent1, agent2, stmt_type, client):
             except json.JSONDecodeError:
                 continue
 
-            pmid = evidence_data.get('pmid')
+            pmid = evidence_data.get("pmid")
             if pmid:
                 pmids_seen.add(str(pmid))
 
-            source_api = evidence_data.get('source_api', '')
-            source_sub_id = evidence_data.get('annotations', {}).get('source_sub_id', '')
+            source_api = evidence_data.get("source_api", "")
+            source_sub_id = evidence_data.get("annotations", {}).get("source_sub_id", "")
             key = f"{source_api}:{source_sub_id}" if source_sub_id else source_api
             if key:
                 sources_seen[key] = None
@@ -119,7 +105,7 @@ def get_database_source(agent1, agent2, stmt_type, client):
 
 
 def fetch_evidence_text(agent1, agent2, stmt_type, client):
-    """Pull INDRA statements (lighter limits) and format numbered evidence; fallback to sources list."""
+    """Pull INDRA statements and format numbered evidence; fallback to sources list."""
     try:
         stmts = get_statements(
             agent=process_identifier(agent1, for_query=True),
@@ -127,9 +113,9 @@ def fetch_evidence_text(agent1, agent2, stmt_type, client):
             agent_role="subject",
             other_role="object",
             rel_types=stmt_type,
-            limit=20,            # lighter than 50
-            evidence_limit=20,   # lighter than 50
-            client=client
+            limit=20,
+            evidence_limit=20,
+            client=client,
         )
         if not stmts:
             return get_database_source(agent1, agent2, stmt_type, client)
@@ -148,12 +134,12 @@ def fetch_evidence_text(agent1, agent2, stmt_type, client):
 
 
 def format_evidence_text(text):
-    """Reformat '1. ...' into '1) ...' with blank lines between numbered items; keep fallback text as-is."""
+    """Reformat '1. ...' into '1) ...' with blank lines between numbered items."""
     if not isinstance(text, str):
         return text
     if text.startswith("Evidence from:") or text.startswith("No evidence found"):
         return text
-    pattern = r'(^|\n|; )(\d+\.\s)'
+    pattern = r"(^|\n|; )(\d+\.\s)"
     parts = []
     last_idx = 0
     for match in re.finditer(pattern, text):
@@ -162,19 +148,16 @@ def format_evidence_text(text):
             parts.append(text[last_idx:start].strip())
         last_idx = start
     parts.append(text[last_idx:].strip())
-    return "\n\n".join([re.sub(r'^(\d+)\.\s', r'\1) ', p) for p in parts])
+    return "\n\n".join([re.sub(r"^(\d+)\.\s", r"\1) ", p) for p in parts])
 
 
-# ==============================
-# PARALLEL ROW PROCESSOR
-# ==============================
 def process_row(idx, row):
-    client = get_thread_client()  # thread-local reuse
-    source = normalize_gene_symbol(row['source'])
-    intermediate = normalize_gene_symbol(row['intermediate'])
-    target = normalize_gene_symbol(row['target'])
-    stmt1 = row['stmt_type_1']
-    stmt2 = row['stmt_type_2']
+    client = get_thread_client()
+    source = normalize_gene_symbol(row["source"])
+    intermediate = normalize_gene_symbol(row["intermediate"])
+    target = normalize_gene_symbol(row["target"])
+    stmt1 = row["stmt_type_1"]
+    stmt2 = row["stmt_type_2"]
 
     ev1 = fetch_evidence_text(source, intermediate, stmt1, client)
     _, pmids1 = get_evidence_info(source, intermediate, stmt1, client)
@@ -182,132 +165,150 @@ def process_row(idx, row):
     _, pmids2 = get_evidence_info(intermediate, target, stmt2, client)
 
     return {
-        'idx': idx,
-        'evidence_text_hop1': format_evidence_text(ev1),
-        'pmids_hop1': "; ".join(pmids1),
-        'evidence_text_hop2': format_evidence_text(ev2),
-        'pmids_hop2': "; ".join(pmids2)
+        "idx": idx,
+        "evidence_text_hop1": format_evidence_text(ev1),
+        "pmids_hop1": "; ".join(pmids1),
+        "evidence_text_hop2": format_evidence_text(ev2),
+        "pmids_hop2": "; ".join(pmids2),
     }
 
 
-# ==============================
-# MAIN FUNCTION
-# ==============================
 def main():
+    parser = argparse.ArgumentParser(description="Fetch evidence text for 2-hop results")
+    parser.add_argument("--input", required=True, help="Input CSV")
+    parser.add_argument("--output", required=True, help="Output CSV")
+    parser.add_argument("--checkpoint-dir", default=None, help="Directory for checkpoints")
+    parser.add_argument("--max-workers", type=int, default=5)
+    parser.add_argument("--heartbeat-secs", type=int, default=10)
+    parser.add_argument("--log-every", type=int, default=100)
+    parser.add_argument("--checkpoint-every", type=int, default=1000)
+    parser.add_argument("--start-index", type=int, default=None)
+    args = parser.parse_args()
+
+    if args.checkpoint_dir:
+        os.makedirs(args.checkpoint_dir, exist_ok=True)
+
     start = time.time()
 
-    # 1) Load latest checkpoint if present; otherwise CSV
-    checkpoint_files = sorted([f for f in os.listdir(CHECKPOINT_DIR) if f.endswith(".pkl")])
-    if checkpoint_files:
-        latest = checkpoint_files[-1]
-        df = pd.read_pickle(os.path.join(CHECKPOINT_DIR, latest))
-        print(f"🔁 Resuming from checkpoint: {latest}")
+    if args.checkpoint_dir:
+        checkpoint_files = sorted([f for f in os.listdir(args.checkpoint_dir) if f.endswith(".pkl")])
+        if checkpoint_files:
+            latest = checkpoint_files[-1]
+            df = pd.read_pickle(os.path.join(args.checkpoint_dir, latest))
+            logger.info("Resuming from checkpoint: %s", latest)
+        else:
+            df = pd.read_csv(args.input)
+            logger.info("No checkpoint found. Starting from scratch...")
     else:
-        df = pd.read_csv(INPUT_FILE)
-        print("🆕 No checkpoint found. Starting from scratch...")
+        df = pd.read_csv(args.input)
+        logger.info("Starting from scratch...")
 
-    # 2) Ensure result columns exist
-    for col in ['evidence_text_hop1', 'pmids_hop1', 'evidence_text_hop2', 'pmids_hop2']:
+    for col in ["evidence_text_hop1", "pmids_hop1", "evidence_text_hop2", "pmids_hop2"]:
         if col not in df.columns:
             df[col] = ""
 
-    # 3) Select rows to process (optionally force a start index)
-    if START_INDEX is not None:
-        pending = df.loc[START_INDEX:]
+    if args.start_index is not None:
+        pending = df.loc[args.start_index:]
     else:
         pending = df
 
     to_process = pending[
-        (pending['evidence_text_hop1'].isna()) | (pending['evidence_text_hop2'].isna()) |
-        (pending['evidence_text_hop1'] == "") | (pending['evidence_text_hop2'] == "")
+        (pending["evidence_text_hop1"].isna()) | (pending["evidence_text_hop2"].isna()) |
+        (pending["evidence_text_hop1"] == "") | (pending["evidence_text_hop2"] == "")
     ]
 
     total_pending = len(to_process)
-    print(f"🔧 Processing {total_pending} pending rows using {MAX_WORKERS} threads...")
+    logger.info("Processing %d pending rows using %d threads...", total_pending, args.max_workers)
 
-    # 4) Parallel processing with heartbeat + checkpoints + error marking
     completed = 0
     in_flight = {}
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        # submit all tasks
+    with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
         for idx in to_process.index:
             in_flight[executor.submit(process_row, idx, df.loc[idx])] = idx
 
         last_heartbeat = time.time()
 
         while in_flight:
-            done, not_done = wait(in_flight.keys(), timeout=HEARTBEAT_SECS, return_when=FIRST_COMPLETED)
+            done, not_done = wait(in_flight.keys(), timeout=args.heartbeat_secs, return_when=FIRST_COMPLETED)
 
-            # Heartbeat if nothing completed
             if not done:
-                print(f"⏳ Still working... {len(not_done)} rows in flight (no completion in last {HEARTBEAT_SECS}s)")
+                logger.debug(
+                    "Still working... %d rows in flight (no completion in last %ds)",
+                    len(not_done), args.heartbeat_secs,
+                )
                 last_heartbeat = time.time()
                 continue
 
-            # Consume finished futures
             for fut in done:
                 idx = in_flight.pop(fut)
                 try:
                     result = fut.result()
-                    row_idx = result.pop('idx')
+                    row_idx = result.pop("idx")
                     for k, v in result.items():
                         df.at[row_idx, k] = v
                 except Exception as e:
-                    # Mark as error so it won't block future runs
-                    df.at[idx, 'evidence_text_hop1'] = f"Error: {e}"
-                    df.at[idx, 'evidence_text_hop2'] = f"Error: {e}"
-                    df.at[idx, 'pmids_hop1'] = ""
-                    df.at[idx, 'pmids_hop2'] = ""
+                    df.at[idx, "evidence_text_hop1"] = f"Error: {e}"
+                    df.at[idx, "evidence_text_hop2"] = f"Error: {e}"
+                    df.at[idx, "pmids_hop1"] = ""
+                    df.at[idx, "pmids_hop2"] = ""
 
                 completed += 1
-                if completed % LOG_EVERY == 0:
-                    print(f"✅ Processed {completed}/{total_pending} rows...")
+                if completed % args.log_every == 0:
+                    logger.info("Processed %d/%d rows...", completed, total_pending)
 
-                if completed % CHECKPOINT_EVERY == 0:
-                    checkpoint_file = os.path.join(CHECKPOINT_DIR, f"checkpoint_row_{completed}.pkl")
+                if args.checkpoint_dir and completed % args.checkpoint_every == 0:
+                    checkpoint_file = os.path.join(args.checkpoint_dir, f"checkpoint_row_{completed}.pkl")
                     df.to_pickle(checkpoint_file)
-                    print(f"💾 Checkpoint saved at row {completed} → {checkpoint_file}")
+                    logger.info("Checkpoint saved at row %d -> %s", completed, checkpoint_file)
 
-    # 5) Final clean + format
     df["evidence_text_hop1"] = df["evidence_text_hop1"].apply(format_evidence_text)
     df["evidence_text_hop2"] = df["evidence_text_hop2"].apply(format_evidence_text)
-    df["pmids_hop1"] = df["pmids_hop1"].astype(str).replace(['nan', 'None'], '')
-    df["pmids_hop2"] = df["pmids_hop2"].astype(str).replace(['nan', 'None'], '')
+    df["pmids_hop1"] = df["pmids_hop1"].astype(str).replace(["nan", "None"], "")
+    df["pmids_hop2"] = df["pmids_hop2"].astype(str).replace(["nan", "None"], "")
 
-    # 6) Reorder columns after stmt_type_2
     cols = df.columns.tolist()
-    evidence_cols = ['evidence_text_hop1', 'evidence_text_hop2', 'pmids_hop1', 'pmids_hop2']
+    evidence_cols = ["evidence_text_hop1", "evidence_text_hop2", "pmids_hop1", "pmids_hop2"]
     for col in evidence_cols:
         if col in cols:
             cols.remove(col)
-    if 'stmt_type_2' in cols:
-        insert_at = cols.index('stmt_type_2') + 1
+    if "stmt_type_2" in cols:
+        insert_at = cols.index("stmt_type_2") + 1
         for i, col in enumerate(evidence_cols):
             cols.insert(insert_at + i, col)
         df = df[cols]
 
-    # 7) Save CSV + summary
-    df.to_csv(OUTPUT_FILE, index=False)
+    df.to_csv(args.output, index=False)
 
     total = len(df)
     pmid_hop1_count = sum(1 for x in df["pmids_hop1"] if str(x).strip())
     pmid_hop2_count = sum(1 for x in df["pmids_hop2"] if str(x).strip())
-    db_evidence_hop1_count = sum(1 for x in df["evidence_text_hop1"]
-                                 if isinstance(x, str) and (x.startswith("Evidence from:") or x == "No evidence found"))
-    db_evidence_hop2_count = sum(1 for x in df["evidence_text_hop2"]
-                                 if isinstance(x, str) and (x.startswith("Evidence from:") or x == "No evidence found"))
+    db_evidence_hop1_count = sum(
+        1 for x in df["evidence_text_hop1"]
+        if isinstance(x, str) and (x.startswith("Evidence from:") or x == "No evidence found")
+    )
+    db_evidence_hop2_count = sum(
+        1 for x in df["evidence_text_hop2"]
+        if isinstance(x, str) and (x.startswith("Evidence from:") or x == "No evidence found")
+    )
 
     duration = (time.time() - start) / 60
-    print(f"\n✅ Output saved to: {OUTPUT_FILE}")
-    print(f"⏱️ Time taken: {duration:.2f} minutes")
-    print("📊 Summary:")
-    print(f"   Hop 1 (source ➝ intermediate):")
-    print(f"     Rows with PMIDs: {pmid_hop1_count}/{total} ({(pmid_hop1_count / total) * 100:.1f}%)")
-    print(f"     Rows with fallback evidence: {db_evidence_hop1_count}/{total} ({(db_evidence_hop1_count / total) * 100:.1f}%)")
-    print(f"   Hop 2 (intermediate ➝ target):")
-    print(f"     Rows with PMIDs: {pmid_hop2_count}/{total} ({(pmid_hop2_count / total) * 100:.1f}%)")
-    print(f"     Rows with fallback evidence: {db_evidence_hop2_count}/{total} ({(db_evidence_hop2_count / total) * 100:.1f}%)")
+    logger.info("Output saved to: %s", args.output)
+    logger.info("Time taken: %.2f minutes", duration)
+    logger.info("Summary:")
+    logger.info("  Hop 1 (source -> intermediate):")
+    logger.info("    Rows with PMIDs: %d/%d (%.1f%%)", pmid_hop1_count, total, (pmid_hop1_count / total) * 100)
+    logger.info(
+        "    Rows with fallback evidence: %d/%d (%.1f%%)",
+        db_evidence_hop1_count, total, (db_evidence_hop1_count / total) * 100,
+    )
+    logger.info("  Hop 2 (intermediate -> target):")
+    logger.info("    Rows with PMIDs: %d/%d (%.1f%%)", pmid_hop2_count, total, (pmid_hop2_count / total) * 100)
+    logger.info(
+        "    Rows with fallback evidence: %d/%d (%.1f%%)",
+        db_evidence_hop2_count, total, (db_evidence_hop2_count / total) * 100,
+    )
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

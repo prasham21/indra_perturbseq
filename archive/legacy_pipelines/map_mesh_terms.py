@@ -1,32 +1,19 @@
+"""Legacy script: map_mesh_terms."""
+from __future__ import annotations
+
+import argparse
 import pandas as pd
 import re
 
-# === CONFIG ===
-REFERENCE_FILE = "/Users/prashammarfatia/Downloads/comprehensive_mesh_list_EXPANDED_.csv"
-HOP_FILE = "/Users/prashammarfatia/Downloads/indra_2hop_with_mesh_terms.csv"
-OUTPUT_FILE = "/Users/prashammarfatia/Downloads/_new_2hop_mesh_filtered.csv"
+import logging
 
-# === STEP 1: Load reference MeSH list (robust) ===
-ref_df = pd.read_csv(REFERENCE_FILE, encoding='utf-8-sig', on_bad_lines='skip')
 
-# Clean mesh_id thoroughly
-ref_df["mesh_id"] = (
-    ref_df["mesh_id"]
-    .astype(str)
-    .str.replace(r"\s+", "", regex=True)          # remove whitespace, tabs, newlines
-    .str.replace(r"[^A-Za-z0-9]", "", regex=True) # remove non-alphanumeric chars
-)
+logger = logging.getLogger(__name__)
+REFERENCE_FILE = "comprehensive_mesh_list_EXPANDED_.csv"
+HOP_FILE = "indra_2hop_with_mesh_terms.csv"
+OUTPUT_FILE = "_new_2hop_mesh_filtered.csv"
 
-# Keep unique valid MeSH IDs (start with D)
-valid_ids = set(ref_df["mesh_id"][ref_df["mesh_id"].str.startswith("D")])
-print(f"✅ Loaded {len(valid_ids)} valid MeSH IDs from reference list")
-
-# === STEP 2: Load 2-hop dataset ===
-hop_df = pd.read_csv(HOP_FILE)
-print(f"✅ Loaded {len(hop_df)} rows from {HOP_FILE}\n")
-
-# === STEP 3: Define helper function for filtering ===
-def filter_mesh_terms(text):
+def filter_mesh_terms(text, valid_ids):
     """Keep only valid MeSH terms present in the reference list."""
     if pd.isna(text):
         return ""
@@ -38,27 +25,53 @@ def filter_mesh_terms(text):
             filtered.append(p.strip())
     return ", ".join(filtered)
 
-# === STEP 4: Apply cleaning to BOTH MeSH columns ===
-mesh_columns = ["Annotated MeSH terms hop1", "Annotated MeSH terms hop2"]
 
-for target_col in mesh_columns:
-    if target_col in hop_df.columns:
-        print(f"🧹 Filtering column: {target_col}")
-        hop_df[target_col] = hop_df[target_col].apply(filter_mesh_terms)
+
+def main():
+    ap = argparse.ArgumentParser(description="Filter MeSH terms against reference list.")
+    ap.add_argument("--reference", default=REFERENCE_FILE, help="Reference MeSH list CSV.")
+    ap.add_argument("--input", default=HOP_FILE, help="Input hop CSV with MeSH annotations.")
+    ap.add_argument("--output", default=OUTPUT_FILE, help="Output filtered CSV.")
+    args = ap.parse_args()
+
+    ref_df = pd.read_csv(args.reference, encoding='utf-8-sig', on_bad_lines='skip')
+
+    ref_df["mesh_id"] = (
+        ref_df["mesh_id"]
+        .astype(str)
+        .str.replace(r"\s+", "", regex=True)
+        .str.replace(r"[^A-Za-z0-9]", "", regex=True)
+    )
+
+    valid_ids = set(ref_df["mesh_id"][ref_df["mesh_id"].str.startswith("D")])
+    logger.info("Loaded %d valid MeSH IDs from reference list", len(valid_ids))
+
+    hop_df = pd.read_csv(args.input)
+    logger.info("Loaded %d rows from %s", len(hop_df), args.input)
+
+    mesh_columns = ["Annotated MeSH terms hop1", "Annotated MeSH terms hop2"]
+
+    for target_col in mesh_columns:
+        if target_col in hop_df.columns:
+            logger.info("Filtering column: %s", target_col)
+            hop_df[target_col] = hop_df[target_col].apply(lambda t: filter_mesh_terms(t, valid_ids))
+        else:
+            logger.info("Column '%s' not found, skipping.", target_col)
+
+    drop_cols = [
+        c for c in hop_df.columns
+        if any(s in c for s in [".1", ".2", ".3", "(copy)", "n_kept", "n_total", "n_dropped"])
+    ]
+    if drop_cols:
+        hop_df.drop(columns=drop_cols, inplace=True)
+        logger.info(" Dropped extra columns: %s", drop_cols)
     else:
-        print(f"⚠️ Column '{target_col}' not found — skipping.")
+        logger.info(" No extra or duplicate columns found to drop.")
 
-# === STEP 5: Drop unwanted or duplicate columns if any ===
-drop_cols = [
-    c for c in hop_df.columns
-    if any(s in c for s in [".1", ".2", ".3", "(copy)", "n_kept", "n_total", "n_dropped"])
-]
-if drop_cols:
-    hop_df.drop(columns=drop_cols, inplace=True)
-    print(f"🗑️ Dropped extra columns: {drop_cols}")
-else:
-    print("✅ No extra or duplicate columns found to drop.")
+    hop_df.to_csv(args.output, index=False)
+    logger.info("Clean filtered 2-hop file saved to: %s", args.output)
 
-# === STEP 6: Save cleaned output ===
-hop_df.to_csv(OUTPUT_FILE, index=False)
-print(f"📁 Clean filtered 2-hop file saved to: {OUTPUT_FILE}")
+
+
+if __name__ == "__main__":
+    main()

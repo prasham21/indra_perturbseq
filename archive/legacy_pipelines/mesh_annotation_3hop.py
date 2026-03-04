@@ -1,13 +1,19 @@
-import pandas as pd
+"""Legacy script: MeSH annotation for 3-hop INDRA results."""
+from __future__ import annotations
+
+import argparse
 import re
 import time
-from indra_cogex.client.neo4j_client import Neo4jClient
+
+import pandas as pd
 from indra_cogex.client import get_mesh_ids_for_pmids
+from indra_cogex.client.neo4j_client import Neo4jClient
+
+import logging
 
 
-# === CONFIG ===
-INPUT_FILE = "/Users/prashammarfatia/Downloads/indra_3hop_with_statements__main.csv"
-OUTPUT_FILE = "/Users/prashammarfatia/Downloads/indra_3hop_with_mesh_names_and_ids_clean.csv"
+logger = logging.getLogger(__name__)
+
 BATCH_SIZE = 100
 
 
@@ -24,33 +30,33 @@ def extract_all_pmids(df, hop_cols):
 
 def batch_iterable(iterable, size):
     """Yield successive fixed-size batches."""
-    l = len(iterable)
-    for i in range(0, l, size):
+    length = len(iterable)
+    for i in range(0, length, size):
         yield iterable[i:i + size]
 
 
 def build_pmid_to_mesh_map(pmids, client):
-    """Query Neo4j in batches and build a PMID → MeSH ID map."""
+    """Query Neo4j in batches and build a PMID -> MeSH ID map."""
     pmid_to_mesh = {}
     total_batches = (len(pmids) // BATCH_SIZE) + 1
-    print(f"\n Fetching MeSH annotations for {len(pmids)} PMIDs in {total_batches} batches...\n")
+    logger.info("Fetching MeSH annotations for %d PMIDs in %d batches...", len(pmids), total_batches)
     start = time.time()
 
     for i, batch in enumerate(batch_iterable(pmids, BATCH_SIZE), start=1):
         mesh_map = get_mesh_ids_for_pmids(batch, client=client)
         pmid_to_mesh.update(mesh_map)
-        print(f"   Batch {i}/{total_batches} processed ({len(batch)} PMIDs)")
+        logger.info("Batch %d/%d processed (%d PMIDs)", i, total_batches, len(batch))
 
     duration = time.time() - start
-    print(f"\n⏱  Completed in {duration:.1f} seconds")
-    print(f" Annotated {len([v for v in pmid_to_mesh.values() if v])} PMIDs with MeSH terms\n")
+    logger.info("Completed in %.1f seconds", duration)
+    logger.info("Annotated %d PMIDs with MeSH terms", len([v for v in pmid_to_mesh.values() if v]))
 
     return pmid_to_mesh
 
 
 def build_mesh_id_to_name_map(client):
     """Fetch all MeSH node names."""
-    print("🔍 Fetching MeSH node names...")
+    logger.info("Fetching MeSH node names...")
     query = "MATCH (b:BioEntity) WHERE b.id STARTS WITH 'mesh:' RETURN b.id AS mesh_id, b.name AS mesh_name"
     results = client.query_tx(query)
     mapping = {}
@@ -61,10 +67,10 @@ def build_mesh_id_to_name_map(client):
         else:
             mesh_id, mesh_name = record[0], record[1]
         if mesh_id and mesh_name:
-            norm_id = mesh_id.replace("mesh:", "").upper()
-            mapping[norm_id] = mesh_name
+            norm = mesh_id.replace("mesh:", "").upper()
+            mapping[norm] = mesh_name
 
-    print(f" Loaded {len(mapping)} MeSH name mappings (normalized)")
+    logger.info("Loaded %d MeSH name mappings", len(mapping))
     return mapping
 
 
@@ -95,40 +101,37 @@ def annotate_pmids_column(df, pmid_col, pmid_to_mesh, mesh_id_to_name):
 
         annotated_terms.append(", ".join(valid_terms) if valid_terms else "")
 
-    print(f"   {pmid_col}: Dropped {dropped_terms_count} invalid or unrecognized MeSH entries")
+    logger.info("%s: Dropped %d invalid or unrecognized MeSH entries", pmid_col, dropped_terms_count)
     return annotated_terms
 
 
 def main():
-    print(f" Loading input file: {INPUT_FILE}")
-    df = pd.read_csv(INPUT_FILE)
-    print(f" Loaded {len(df)} rows")
+    ap = argparse.ArgumentParser(description="Annotate 3-hop INDRA results with MeSH terms.")
+    ap.add_argument("--input", required=True, help="Input CSV with pmids_hop* columns.")
+    ap.add_argument("--output", required=True, help="Output CSV with annotated MeSH terms.")
+    args = ap.parse_args()
 
-    # Identify PMID columns dynamically (e.g., pmids_hop1, pmids_hop2, pmids_hop3)
+    logger.info("Loading input file: %s", args.input)
+    df = pd.read_csv(args.input)
+    logger.info("Loaded %d rows", len(df))
+
     hop_cols = [c for c in df.columns if c.startswith("pmids_hop")]
-    print(f" Found PMID columns: {hop_cols}")
+    logger.info("Found PMID columns: %s", hop_cols)
 
-    # --- Step 1: Extract all unique PMIDs ---
     all_pmids = extract_all_pmids(df, hop_cols)
-    print(f" Unique PMIDs found: {len(all_pmids)}")
+    logger.info("Unique PMIDs found: %d", len(all_pmids))
 
-    # --- Step 2: Query Neo4j for MeSH IDs ---
     client = Neo4jClient()
     pmid_to_mesh = build_pmid_to_mesh_map(all_pmids, client)
-
-    # --- Step 3: Fetch name mappings ---
     mesh_id_to_name = build_mesh_id_to_name_map(client)
 
-    # --- Step 4: Annotate each hop separately ---
     for col in hop_cols:
         annotated_terms = annotate_pmids_column(df, col, pmid_to_mesh, mesh_id_to_name)
         insert_index = df.columns.get_loc(col) + 1
         df.insert(insert_index, f"Annotated MeSH terms ({col.replace('pmids_', '')})", annotated_terms)
 
-    # --- Step 5: Save output ---
-    df.to_csv(OUTPUT_FILE, index=False)
-    print(f"\n Saved enriched file to: {OUTPUT_FILE}")
-    print(" Columns added: one MeSH annotation column per hop (name + ID format)")
+    df.to_csv(args.output, index=False)
+    logger.info("Saved enriched file to: %s", args.output)
 
 
 if __name__ == "__main__":

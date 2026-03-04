@@ -1,15 +1,22 @@
+"""Legacy script: direct_pathway_anlaysis."""
+from __future__ import annotations
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 warnings.filterwarnings('ignore')
 
 
 def load_data():
-    hop1 = pd.read_csv('/Users/prashammarfatia/Downloads/indra_1hop_gene_names_cleaned.csv')
-    hop2 = pd.read_csv('/Users/prashammarfatia/Downloads/indra_2hop_with_evidence_statements_.csv')
-    hop3 = pd.read_csv('/Users/prashammarfatia/Downloads/indra_3hop_cleaned_results.csv')
+    hop1 = pd.read_csv('indra_1hop_gene_names_cleaned.csv')
+    hop2 = pd.read_csv('indra_2hop_with_evidence_statements_.csv')
+    hop3 = pd.read_csv('indra_3hop_cleaned_results.csv')
     return hop1, hop2, hop3
 
 
@@ -83,7 +90,7 @@ def plot_combined_results(results, bins):
     ax.set_xticklabels(bin_labels, rotation=45, ha='right')
 
     plt.tight_layout()
-    plt.savefig('/Users/prashammarfatia/Downloads/Evidence_Analysis/fc_bin_combined.png', dpi=300)
+    plt.savefig('Evidence_Analysis/fc_bin_combined.png', dpi=300)
     plt.show()
 
 
@@ -129,7 +136,7 @@ def plot_individual_results(results, bins):
     # Adjust margins and spacing
     plt.subplots_adjust(left=0.1, right=0.98, bottom=0.15, top=0.9, wspace=0.35)
 
-    plt.savefig('/Users/prashammarfatia/Downloads/Evidence_Analysis/fc_bin_individual.png', dpi=300,
+    plt.savefig('Evidence_Analysis/fc_bin_individual.png', dpi=300,
                 bbox_inches='tight')
     plt.show()
 
@@ -138,10 +145,10 @@ def main():
     hop1, hop2, hop3 = load_data()
     results, bins = bin_fc_analysis(hop1, hop2, hop3)
 
-    print("Fold Change Bin Analysis:")
-    print(results.round(1))
+    logger.info("Fold Change Bin Analysis:")
+    logger.info(results.round(1))
 
-    results.to_csv('/Users/prashammarfatia/Downloads/Evidence_Analysis/fc_bin_results.csv', index=False)
+    results.to_csv('Evidence_Analysis/fc_bin_results.csv', index=False)
 
     # Plot combined results
     plot_combined_results(results, bins)
@@ -149,10 +156,10 @@ def main():
     # Plot individual results
     plot_individual_results(results, bins)
 
-    print("Files saved:")
-    print("- fc_bin_combined.png (stacked bar chart with bin ranges)")
-    print("- fc_bin_individual.png (separate plots with bin ranges)")
-    print("- fc_bin_results.csv")
+    logger.info("Files saved:")
+    logger.info("- fc_bin_combined.png (stacked bar chart with bin ranges)")
+    logger.info("- fc_bin_individual.png (separate plots with bin ranges)")
+    logger.info("- fc_bin_results.csv")
 
 
 if __name__ == "__main__":

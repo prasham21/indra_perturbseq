@@ -1,3 +1,6 @@
+"""Legacy script: indra_4hop_analysis."""
+from __future__ import annotations
+
 import os
 import time
 import pandas as pd
@@ -10,11 +13,13 @@ import concurrent.futures
 from threading import Lock
 from datetime import datetime
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 results_lock = Lock()
 
-# =====================================================================
 # UPDATED 4-HOP QUERY (HGNC-only intermediates, no belief cutoff)
-# =====================================================================
 CLEAN_INDIVIDUAL_4HOP_QUERY = """
 MATCH (a:BioEntity {id: $source})-[r1:indra_rel]->(m1:BioEntity)
       -[r2:indra_rel]->(m2:BioEntity)
@@ -41,17 +46,7 @@ RETURN a.id, m1.id, m2.id, m3.id, b.id,
        r1.belief, r2.belief, r3.belief, r4.belief,
        r1.evidence_count, r2.evidence_count, r3.evidence_count, r4.evidence_count
 LIMIT 1
-"""
-
-# =====================================================================
-# GLOBAL CACHES
-# =====================================================================
-SYMBOL_CACHE = {}
-UNIPROT_CACHE = {}
-
-
-def convert_intermediate_to_symbol(intermediate_id):
-    """Convert HGNC/UniProt/FamPlex identifiers to readable gene symbols."""
+"""# GLOBAL CACHES."""
     if not isinstance(intermediate_id, str):
         return intermediate_id
     if intermediate_id in SYMBOL_CACHE:
@@ -78,7 +73,7 @@ def convert_intermediate_to_symbol(intermediate_id):
 
 def load_source_target_pairs():
     """Load only rows that have UniProt intermediates."""
-    input_path = "/Users/prashammarfatia/Downloads/indra_4hop_results_converted.csv"
+    input_path = "indra_4hop_results_converted.csv"
     df = pd.read_csv(input_path)
 
     # Keep rows where any intermediate column contains 'uniprot:'
@@ -88,7 +83,7 @@ def load_source_target_pairs():
     df_uniprot = df[mask]
 
     pairs_df = df_uniprot[['source', 'target', 'logfoldchange', 'pval']].drop_duplicates()
-    print(f"✅ Loaded {len(pairs_df)} source-target pairs with UniProt intermediates.")
+    logger.info(" Loaded %s source-target pairs with UniProt intermediates.", len(pairs_df))
     return pairs_df
 
 
@@ -107,17 +102,17 @@ def save_checkpoint(results, processed_pairs, checkpoint_file="4hop_checkpoint.p
         df_intermediate = pd.DataFrame(results)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         df_intermediate.to_csv(f"4hop_intermediate_{ts}.csv", index=False)
-        print(f"📝 Checkpoint CSV saved: 4hop_intermediate_{ts}.csv")
+        logger.info(" Checkpoint CSV saved: 4hop_intermediate_%s.csv", ts)
 
 
 def load_checkpoint(checkpoint_file="4hop_checkpoint.pkl"):
     global SYMBOL_CACHE, UNIPROT_CACHE
     if not os.path.exists(checkpoint_file):
-        print("No checkpoint found. Starting fresh.")
+        logger.info("No checkpoint found. Starting fresh.")
         return [], set()
     with open(checkpoint_file, "rb") as f:
         data = pickle.load(f)
-        print(f"Resuming from checkpoint ({len(data['processed_pairs'])} processed)")
+        logger.info("Resuming from checkpoint (%s processed)", len(data['processed_pairs']))
         SYMBOL_CACHE.update(data.get("symbol_cache", {}))
         UNIPROT_CACHE.update(data.get("uniprot_cache", {}))
         return data["results"], data["processed_pairs"]
@@ -130,10 +125,10 @@ def process_4hop_paths_for_gene(args):
     client = Neo4jClient()
     local_results, failed_pairs = [], []
 
-    print(f"Processing 4-hop queries for {source_gene}")
+    logger.info("Processing 4-hop queries for %s", source_gene)
     hgnc_id = get_current_hgnc_id(source_gene.upper())
     if not hgnc_id:
-        print(f"⚠️ Skipping {source_gene} (no HGNC ID)")
+        logger.info(" Skipping %s (no HGNC ID)", source_gene)
         return [], []
     source_id = f"hgnc:{hgnc_id}"
 
@@ -173,19 +168,19 @@ def process_4hop_paths_for_gene(args):
 
 
 def main():
-    print("=" * 80)
-    print("INDRA 4-HOP RERUN (HGNC-only, from UniProt intermediates)")
-    print("=" * 80)
+    logger.info("=" * 80)
+    logger.info("INDRA 4-HOP RERUN (HGNC-only, from UniProt intermediates)")
+    logger.info("=" * 80)
 
     pairs_df = load_source_target_pairs()
     pairs_by_source = pairs_df.groupby("source")
 
     if os.path.exists("4hop_checkpoint.pkl"):
         os.remove("4hop_checkpoint.pkl")
-        print("🧹 Old checkpoint removed — starting clean.")
+        logger.info(" Old checkpoint removed — starting clean.")
 
     all_results, processed_pairs = [], set()
-    print(f"🧬 Sources to process: {len(pairs_by_source.groups)}")
+    logger.info(" Sources to process: %s", len(pairs_by_source.groups))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
         future_to_source = {
@@ -201,14 +196,14 @@ def main():
                 processed_pairs.add(source)
                 if i % 5 == 0:
                     save_checkpoint(all_results, processed_pairs)
-                print(f"✔️ Completed {source}: {len(res)} paths")
+                logger.info(" Completed %s: %s paths", source, len(res))
             except Exception as e:
-                print(f" {source} failed: {e}")
+                logger.info(" %s failed: %s", source, e)
 
     df_final = pd.DataFrame(all_results)
-    output_file = "/Users/prashammarfatia/Downloads/indra_4hop_results_hgnc_only.csv"
+    output_file = "indra_4hop_results_hgnc_only.csv"
     df_final.to_csv(output_file, index=False)
-    print(f"\n Saved final HGNC-only results: {len(df_final)} rows → {output_file}")
+    logger.info("\n Saved final HGNC-only results: %s rows → %s", len(df_final), output_file)
 
 
 if __name__ == "__main__":

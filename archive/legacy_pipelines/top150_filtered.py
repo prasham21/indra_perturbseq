@@ -1,29 +1,40 @@
+"""Legacy script: top150_filtered."""
+from __future__ import annotations
+
+import argparse
 import pandas as pd
 
-# === CONFIG ===
-INPUT_FILE = "/Users/prashammarfatia/Downloads/1hop_mesh_filtered__.csv"
-OUTPUT_FILE = "/Users/prashammarfatia/Downloads/1hop_top150_unique_pairs.csv"
+import logging
 
-# === STEP 1: Load data ===
-df = pd.read_csv(INPUT_FILE)
-print(f"✅ Loaded {len(df)} rows from {INPUT_FILE}")
 
-# === STEP 2: Drop duplicates based on unique source-target pair ===
-# Keep the row with the highest logfoldchange per pair
-df_unique = df.sort_values("logfoldchange", ascending=False).drop_duplicates(
-    subset=["source", "target"], keep="first"
-)
+logger = logging.getLogger(__name__)
+INPUT_FILE = "1hop_mesh_filtered__.csv"
+OUTPUT_FILE = "1hop_top150_unique_pairs.csv"
 
-print(f"✅ After deduplication: {len(df_unique)} unique (source, target) pairs")
 
-# === STEP 3: Sort by logfoldchange and take top 150 ===
-df_top150 = df_unique.sort_values("logfoldchange", ascending=False).head(150)
 
-# === STEP 4: Save to output ===
-df_top150.to_csv(OUTPUT_FILE, index=False)
-print(f"📁 Top 150 unique source-target pairs saved to: {OUTPUT_FILE}")
+def main():
+    ap = argparse.ArgumentParser(description="Filter top 150 unique source-target pairs.")
+    ap.add_argument("--input", default=INPUT_FILE, help="Input MeSH-filtered CSV.")
+    ap.add_argument("--output", default=OUTPUT_FILE, help="Output top 150 CSV.")
+    args = ap.parse_args()
 
-# === STEP 5: Optional summary printout ===
-print("\n📊 === Summary ===")
-print(f"Total unique pairs analyzed: {len(df_unique)}")
-print(f"Top 150 max logfoldchange range: {df_top150['logfoldchange'].min():.4f} – {df_top150['logfoldchange'].max():.4f}")
+    df = pd.read_csv(args.input)
+    logger.info("Loaded %d rows from %s", len(df), args.input)
+
+    df_unique = df.sort_values("logfoldchange", ascending=False).drop_duplicates(
+        subset=["source", "target"], keep="first"
+    )
+    logger.info("After deduplication: %d unique (source, target) pairs", len(df_unique))
+
+    df_top150 = df_unique.sort_values("logfoldchange", ascending=False).head(150)
+
+    df_top150.to_csv(args.output, index=False)
+    logger.info("Top 150 unique source-target pairs saved to: %s", args.output)
+    logger.info("Total unique pairs analyzed: %d", len(df_unique))
+    logger.info("Top 150 logfoldchange range: %.4f to %.4f", df_top150['logfoldchange'].min(), df_top150['logfoldchange'].max())
+
+
+
+if __name__ == "__main__":
+    main()

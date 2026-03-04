@@ -1,18 +1,20 @@
+"""Calculate TP/FP/FN/TN and related metrics for bulk RNA validation genes."""
+from __future__ import annotations
 
+import argparse
+
+import logging
 import os
+
 import pandas as pd
 
-# ── CONFIG ────────────────────────────────────────────────────────────────────
-INDRA_DIR = "/Users/prashammarfatia/Downloads/validation_6genes_hops"
-DEG_DIR   = "/Users/prashammarfatia/Downloads/de_results_bulk_6genes"
-ENDO_LIST = "/Users/prashammarfatia/Downloads/endothelial_present_plus_manual.csv"
+logger = logging.getLogger(__name__)
 
-OUT_DIR   = "/Users/prashammarfatia/Downloads/validation_6genes_comparison_hops12"
+
 
 GENES = ["ITGB1BP1", "CCM2", "PDCD10", "MAP3K3", "MAP2K5", "KLF2"]
 FDR_THRESHOLD = 0.05
-ALLOWED_HOPS = {1,2}
-# ─────────────────────────────────────────────────────────────────────────────
+ALLOWED_HOPS = {1, 2}
 
 
 def load_endo_set(path: str) -> set[str]:
@@ -26,22 +28,21 @@ def load_endo_set(path: str) -> set[str]:
 def load_predicted_targets(indra_csv: str, endo_set: set[str]) -> tuple[set[str], pd.DataFrame]:
     indra = pd.read_csv(indra_csv, low_memory=False)
     if "target" not in indra.columns or "hop" not in indra.columns:
-        raise ValueError(f"INDRA file must include 'target' and 'hop'. Columns: {indra.columns.tolist()}")
+        raise ValueError(
+            f"INDRA file must include 'target' and 'hop'. Columns: {indra.columns.tolist()}"
+        )
 
     indra["target"] = indra["target"].astype(str).str.strip()
     indra["hop"] = pd.to_numeric(indra["hop"], errors="coerce")
 
-    # Restrict to hop 1+2 only
     indra = indra[indra["hop"].isin(ALLOWED_HOPS)].copy()
-
-    # Restrict to endothelial universe (targets should already be, but enforce)
     indra = indra[indra["target"].isin(endo_set)].copy()
 
-    # min hop per target (nice summary)
     minhop = (
         indra.dropna(subset=["hop"])
-             .groupby("target", as_index=False)["hop"].min()
-             .rename(columns={"hop": "min_hop"})
+        .groupby("target", as_index=False)["hop"]
+        .min()
+        .rename(columns={"hop": "min_hop"})
     )
     predicted = set(minhop["target"].tolist())
     return predicted, minhop
@@ -52,7 +53,9 @@ def load_deg(deg_csv: str) -> pd.DataFrame:
     required = {"names", "logfoldchanges", "pvals", "pvals_adj"}
     missing = required - set(deg.columns)
     if missing:
-        raise ValueError(f"DEG file missing columns {sorted(missing)}. Columns: {deg.columns.tolist()}")
+        raise ValueError(
+            f"DEG file missing columns {sorted(missing)}. Columns: {deg.columns.tolist()}"
+        )
 
     deg = deg.copy()
     deg["names"] = deg["names"].astype(str).str.strip()
@@ -66,14 +69,21 @@ def safe_rate(num: int, den: int) -> float:
 
 
 def main():
-    os.makedirs(OUT_DIR, exist_ok=True)
-    endo_set = load_endo_set(ENDO_LIST)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--indra-dir", default="validation_6genes_hops", help="Path for args.indra_dir.")
+    ap.add_argument("--deg-dir", default="de_results_bulk_6genes", help="Path for args.deg_dir.")
+    ap.add_argument("--endo-list", default="endothelial_present_plus_manual.csv", help="Path for args.endo_list.")
+    ap.add_argument("--out-dir", default="validation_6genes_comparison_hops12", help="Path for args.out_dir.")
+    args = ap.parse_args()
+
+    os.makedirs(args.out_dir, exist_ok=True)
+    endo_set = load_endo_set(args.endo_list)
 
     summary_rows = []
 
     for g in GENES:
-        indra_path = os.path.join(INDRA_DIR, f"{g}_all_hops.csv")
-        deg_path   = os.path.join(DEG_DIR,   f"{g}_vs_control.csv")
+        indra_path = os.path.join(args.indra_dir, f"{g}_all_hops.csv")
+        deg_path = os.path.join(args.deg_dir, f"{g}_vs_control.csv")
 
         if not os.path.exists(indra_path):
             raise FileNotFoundError(f"Missing INDRA file: {indra_path}")
@@ -83,7 +93,6 @@ def main():
         predicted, minhop_df = load_predicted_targets(indra_path, endo_set)
         deg = load_deg(deg_path)
 
-        # Universe = all genes tested in DEG file ∩ endothelial universe
         universe = set(deg["names"].tolist())
         universe = {x for x in universe if x in endo_set}
 
@@ -100,7 +109,6 @@ def main():
         fpr = safe_rate(len(fp), len(fp) + len(tn))
         precision = safe_rate(len(tp), len(tp) + len(fp))
 
-        # Per-gene table: predicted descendants (hops 1+2 only) + empirical stats + appended FNs
         deg_for_join = deg.rename(columns={"names": "target"})
 
         out = minhop_df.copy()
@@ -115,7 +123,6 @@ def main():
         out["is_empirical_sig_fdr005"] = out["pvals_adj"] < FDR_THRESHOLD
         out["classification"] = out["is_empirical_sig_fdr005"].map({True: "TP", False: "FP"})
 
-        # Append false negatives
         fn_df = deg_for_join.loc[
             (deg_for_join["pvals_adj"] < FDR_THRESHOLD)
             & (~deg_for_join["target"].isin(predicted))
@@ -138,7 +145,9 @@ def main():
         extra_cols = [c for c in final.columns if c not in desired_cols]
         final = final[desired_cols + extra_cols]
 
-        final_out_path = os.path.join(OUT_DIR, f"{g}_descendants_with_empirical_stats_frd005_hops_1_2.csv")
+        final_out_path = os.path.join(
+            args.out_dir, f"{g}_descendants_with_empirical_stats_frd005_hops_1_2.csv"
+        )
         final.to_csv(final_out_path, index=False)
 
         summary_rows.append({
@@ -159,14 +168,14 @@ def main():
             "per_gene_output_csv": final_out_path,
         })
 
-        print(f"[{g}] wrote: {final_out_path}")
+        logger.info("[%s] wrote: %s", g, final_out_path)
 
     summary = pd.DataFrame(summary_rows).sort_values("gene")
-    summary_out = os.path.join(OUT_DIR, "validation_6genes_metrics_fdr005_hops1_2.csv")
+    summary_out = os.path.join(args.out_dir, "validation_6genes_metrics_fdr005_hops1_2.csv")
     summary.to_csv(summary_out, index=False)
 
-    print("\nWrote summary:", summary_out)
-    print(summary.to_string(index=False))
+    logger.info("Wrote summary: %s", summary_out)
+    logger.debug("\n%s", summary.to_string(index=False))
 
 
 if __name__ == "__main__":

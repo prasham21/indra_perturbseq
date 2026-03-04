@@ -1,5 +1,12 @@
+"""Superseded legacy script for 1-hop gene characterization scoring.
+
+Refactored into src/indra_perturbseq/pipelines/.
+"""
+from __future__ import annotations
+
 import argparse
 import json
+import logging
 from collections import defaultdict
 
 import pandas as pd
@@ -8,8 +15,8 @@ import matplotlib.pyplot as plt
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra.databases import hgnc_client
 
+logger = logging.getLogger(__name__)
 
-# Direction-agnostic: match either source->target or target->source in Neo4j
 EDGE_EVIDENCE_BATCH_QUERY = """
 UNWIND $edges AS e
 MATCH (a:BioEntity)-[r:indra_rel {stmt_type: e.stmt_type}]->(b:BioEntity)
@@ -31,12 +38,7 @@ def is_nonempty(x) -> bool:
 
 
 def clean_gene_symbol(x: str) -> str:
-    """
-    Conservative cleaning for common CSV artifacts:
-    - convert NBSP to space, strip
-    - remove spaces
-    - drop trailing '.0' / '.00'
-    """
+    """Conservative cleaning for common CSV artifacts."""
     s = str(x)
     s = s.replace("\xa0", " ").strip()
     s = s.replace(" ", "")
@@ -65,8 +67,9 @@ def parse_evidence_json(evidence_str: str):
     return pmid, source_api, source_sub_id
 
 
-def evidence_source_identity(pmid: str | None, source_api: str | None, source_sub_id: str | None) -> str | None:
-    # Karen's rule: count each paper once; DBs only when PMID missing
+def evidence_source_identity(
+    pmid: str | None, source_api: str | None, source_sub_id: str | None,
+) -> str | None:
     if pmid and pmid.isdigit():
         return f"PMID:{pmid}"
 
@@ -89,11 +92,11 @@ def batched(iterable, batch_size: int):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--input-csv", required=True, help="1-hop input CSV (e.g., 1hop_complete.csv)")
-    ap.add_argument("--out-gene-csv", required=True, help="gene_characterization_1hop.csv")
-    ap.add_argument("--out-path-csv", required=True, help="1hop_complete_with_characterization.csv")
-    ap.add_argument("--out-hist", required=True, help="characterization_histogram_1hop.png")
+    ap = argparse.ArgumentParser(description="1-hop gene characterization scoring")
+    ap.add_argument("--input-csv", required=True, help="1-hop input CSV")
+    ap.add_argument("--out-gene-csv", required=True, help="Gene characterization output CSV")
+    ap.add_argument("--out-path-csv", required=True, help="1-hop CSV with characterization columns")
+    ap.add_argument("--out-hist", required=True, help="Characterization histogram PNG")
 
     ap.add_argument("--source-col", default="source")
     ap.add_argument("--target-col", default="target")
@@ -113,7 +116,6 @@ def main():
             f"Tip: pass --source-col/--target-col/--stmt-col if names differ."
         )
 
-    # Build unique edges (symbol-level, cleaned for HGNC lookup)
     edges_sym = set()
     for _, r in df.iterrows():
         a = clean_gene_symbol(r[args.source_col])
@@ -122,9 +124,8 @@ def main():
         if a and b and st:
             edges_sym.add((a, b, st))
 
-    print(f"Unique 1-hop edges: {len(edges_sym):,}")
+    logger.info("Unique 1-hop edges: %d", len(edges_sym))
 
-    # HGNC mapping cache
     sym_to_hgnc = {}
 
     def sym_to_hgnc_id(sym: str) -> str | None:
@@ -135,9 +136,8 @@ def main():
         sym_to_hgnc[sym] = hid
         return hid
 
-    # Build Neo4j edge list and keymap
     edges = []
-    keymap = {}  # (a_sym, b_sym, stmt_type) -> (a_id, b_id, stmt_type)
+    keymap = {}
 
     for a_sym, b_sym, st in edges_sym:
         a_h = sym_to_hgnc_id(a_sym)
@@ -150,7 +150,6 @@ def main():
         keymap[(a_sym, b_sym, st)] = key
         edges.append({"source_id": a_id, "target_id": b_id, "stmt_type": st})
 
-    # Deduplicate Neo4j edges
     seen = set()
     dedup_edges = []
     for e in edges:
@@ -161,13 +160,12 @@ def main():
         dedup_edges.append(e)
     edges = dedup_edges
 
-    print(f"Neo4j-resolvable 1-hop edges: {len(edges):,}")
+    logger.info("Neo4j-resolvable 1-hop edges: %d", len(edges))
 
     client = Neo4jClient()
 
-    # Edge -> unique sources AND edge -> evidence mention count
     edge_sources = defaultdict(set)
-    edge_evidence_mentions = defaultdict(int)  # (source_id, target_id, stmt_type) -> # Evidence JSON rows
+    edge_evidence_mentions = defaultdict(int)
 
     for batch in batched(edges, args.batch_size):
         rows = client.query_tx(EDGE_EVIDENCE_BATCH_QUERY, edges=batch)
@@ -182,9 +180,8 @@ def main():
             if ident:
                 edge_sources[(source_id, target_id, stmt_type)].add(ident)
 
-    print(f"Edges with any extracted sources: {len(edge_sources):,}")
+    logger.info("Edges with any extracted sources: %d", len(edge_sources))
 
-    # Gene -> unique sources + evidence mentions (propagate edge info to endpoints)
     gene_sources = defaultdict(set)
     gene_evidence_mentions = defaultdict(int)
 
@@ -203,7 +200,6 @@ def main():
             gene_sources[a_sym].update(srcs)
             gene_sources[b_sym].update(srcs)
 
-    # Ensure all genes in CSV are included (even if 0)
     all_genes = sorted(
         set(df[args.source_col].astype(str).map(clean_gene_symbol).tolist())
         | set(df[args.target_col].astype(str).map(clean_gene_symbol).tolist())
@@ -212,46 +208,39 @@ def main():
         gene_sources[g]
         gene_evidence_mentions[g] += 0
 
-    # Build gene_characterization_1hop.csv
     genes = sorted(gene_sources.keys())
     rows_out = []
     for g in genes:
         srcs = gene_sources[g]
         lit = sum(1 for s in srcs if s.startswith("PMID:"))
         db = sum(1 for s in srcs if s.startswith("DB:"))
-        rows_out.append(
-            {
-                "gene": g,
-                "literature_count": lit,
-                "database_count": db,
-                "characterization_count": lit + db,
-                "evidence_mentions_count": int(gene_evidence_mentions.get(g, 0)),
-            }
-        )
+        rows_out.append({
+            "gene": g,
+            "literature_count": lit,
+            "database_count": db,
+            "characterization_count": lit + db,
+            "evidence_mentions_count": int(gene_evidence_mentions.get(g, 0)),
+        })
 
     gene_char = pd.DataFrame(rows_out)
     gene_char.to_csv(args.out_gene_csv, index=False)
-    print(f"Wrote gene characterization -> {args.out_gene_csv}")
+    logger.info("Wrote gene characterization -> %s", args.out_gene_csv)
 
-    # Attach to 1-hop path file (append new columns at end; do not modify existing columns)
     char_map = gene_char.set_index("gene")["characterization_count"].to_dict()
 
     src_clean = df[args.source_col].astype(str).map(clean_gene_symbol)
     tgt_clean = df[args.target_col].astype(str).map(clean_gene_symbol)
 
-    new_cols = pd.DataFrame(
-        {
-            "source_char": src_clean.map(char_map).fillna(0).astype(int),
-            "target_char": tgt_clean.map(char_map).fillna(0).astype(int),
-        }
-    )
+    new_cols = pd.DataFrame({
+        "source_char": src_clean.map(char_map).fillna(0).astype(int),
+        "target_char": tgt_clean.map(char_map).fillna(0).astype(int),
+    })
     new_cols["min_char"] = new_cols[["source_char", "target_char"]].min(axis=1)
 
     df_out = pd.concat([df, new_cols], axis=1)
     df_out.to_csv(args.out_path_csv, index=False)
-    print(f"Wrote 1-hop CSV with characterization -> {args.out_path_csv}")
+    logger.info("Wrote 1-hop CSV with characterization -> %s", args.out_path_csv)
 
-    # Histogram (characterization_count)
     plt.figure(figsize=(8, 5))
     plt.hist(gene_char["characterization_count"], bins=50)
     plt.yscale("log")
@@ -261,8 +250,9 @@ def main():
     plt.tight_layout()
     plt.savefig(args.out_hist, dpi=200)
     plt.close()
-    print(f"Wrote histogram -> {args.out_hist}")
+    logger.info("Wrote histogram -> %s", args.out_hist)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

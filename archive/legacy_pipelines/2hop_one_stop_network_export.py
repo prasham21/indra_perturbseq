@@ -1,29 +1,5 @@
-"""
-2-hop ONE-STOP PIPELINE (NETWORK EXPORT BACKEND)
-
-What it does (end-to-end):
-1) Loads the unsigned directed INDRA network export (.pkl) locally as a NetworkX DiGraph.
-2) For each requested source gene:
-   - reads DEG file: <DE_DIR>/<GENE>_vs_control.csv
-   - selects significant targets using p-values (or FDR if --prefer-fdr)
-   - finds 2-hop paths on the local graph: source -> intermediate -> target
-   - constraints:
-       * intermediates must be HGNC nodes and in the provided endothelial whitelist
-       * final hop (intermediate -> target) must have at least one IncreaseAmount/DecreaseAmount statement
-   - chooses ONE representative statement per hop (by highest belief, tie-break highest evidence_count)
-   - stores hop1/hop2 stmt_hash + db.indra.bio HTML links
-3) Enriches each row with:
-   - evidence text + PMIDs for hop1 and hop2 (from db.indra.bio by stmt_hash; cached)
-   - MeSH terms for hop1 and hop2 (using indra_cogex get_mesh_ids_for_pmids; then filtered to a reference list)
-4) Writes two CSV outputs:
-   - non-self paths (source != target)
-   - self paths (source == target)
-
-Notes:
-- Pathfinding is fully local (no CoGEx/Cypher).
-- Evidence/PMIDs are fetched from db.indra.bio by stmt_hash (no Neo4j Evidence nodes).
-- MeSH extraction uses get_mesh_ids_for_pmids (CoGEx-dependent, by your preference).
-"""
+"""2-hop ONE-STOP PIPELINE (NETWORK EXPORT BACKEND)."""
+from __future__ import annotations
 
 import argparse
 import json
@@ -44,6 +20,10 @@ from indra.databases import hgnc_client
 # MeSH helper (allowed to be CoGEx-dependent per user request)
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra_cogex.client import get_mesh_ids_for_pmids
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 INCDEC = {"IncreaseAmount", "DecreaseAmount"}
@@ -353,13 +333,13 @@ def annotate_mesh(df: pd.DataFrame, mesh_reference_csv: str, mesh_batch_size: in
 def run_2hop_for_gene_network(
     G,
     gene: str,
-    de_dir: str,
+    deg_dir: str,
     p_threshold: float,
     prefer_fdr: bool,
     allowed_intermediates: set[str],
     limit_targets: int = 0,
 ):
-    deg_path = os.path.join(de_dir, f"{gene}_vs_control.csv")
+    deg_path = os.path.join(deg_dir, f"{gene}_vs_control.csv")
     if not os.path.exists(deg_path):
         return [], f"SKIP {gene}: missing DEG file"
 
@@ -488,21 +468,21 @@ def enrich_evidence_and_pmids(df: pd.DataFrame, max_workers: int = 8) -> pd.Data
 def main():
     ap = argparse.ArgumentParser(description="2-hop one-stop pipeline using INDRA network export (no CoGEx/Cypher for paths).")
     ap.add_argument("--graph-pkl", required=True)
-    ap.add_argument("--genes-csv", required=True, help="target_validation_expanded.csv")
-    ap.add_argument("--de-dir", required=True)
+    ap.add_argument("--source-genes-csv", required=True, help="target_validation_expanded.csv")
+    ap.add_argument("--deg-dir", required=True)
     ap.add_argument("--endothelial-list", required=True, help="CSV with column 'gene' listing allowed intermediates")
     ap.add_argument("--mesh-reference", required=True, help="MeSH reference CSV (used to filter MeSH terms)")
 
-    ap.add_argument("--out-csv-main", required=True)
-    ap.add_argument("--out-csv-self", required=True)
+    ap.add_argument("--output-main", required=True)
+    ap.add_argument("--output-self-targets", required=True)
 
-    ap.add_argument("--karen-flag-col", default="Karen_Flag")
-    ap.add_argument("--karen-flag-value", default="Use_for_analysis")
-    ap.add_argument("--gene-col", default="Gene")
+    ap.add_argument("--filter-column", default="analysis_flag")
+    ap.add_argument("--filter-value", default="Use_for_analysis")
+    ap.add_argument("--gene-column", default="Gene")
 
     ap.add_argument("--p-threshold", type=float, default=0.05)
     ap.add_argument("--prefer-fdr", action="store_true")
-    ap.add_argument("--genes", nargs="+", required=False, help="Optional: list of source genes to run. If omitted, uses all Karen_Flag genes.")
+    ap.add_argument("--genes", nargs="+", required=False, help="Optional: list of source genes to run. If omitted, uses all analysis_flag genes.")
     ap.add_argument("--limit-genes", type=int, default=0)
     ap.add_argument("--limit-targets", type=int, default=0)
 
@@ -512,26 +492,26 @@ def main():
 
     args = ap.parse_args()
 
-    print("Loading network export...")
+    logger.info("Loading network export...")
     G, load_secs = load_graph(args.graph_pkl)
-    print(f"Loaded graph in {load_secs/60:.1f} min | nodes={G.number_of_nodes():,} edges={G.number_of_edges():,}")
+    logger.info(f"Loaded graph in {load_secs/60:.1f} min | nodes={G.number_of_nodes():,} edges={G.number_of_edges():,}")
 
     allowed_intermediates = load_endothelial_gene_set(args.endothelial_list)
-    print(f"Loaded endothelial intermediate whitelist: {len(allowed_intermediates):,} genes")
+    logger.info(f"Loaded endothelial intermediate whitelist: {len(allowed_intermediates):,} genes")
 
     genes = []
-    genes_df = pd.read_csv(args.genes_csv, low_memory=False)
+    genes_df = pd.read_csv(args.source_genes_csv, low_memory=False)
     if args.genes:
         genes = [str(x).strip() for x in args.genes if str(x).strip()]
     else:
-        if args.karen_flag_col in genes_df.columns:
-            genes_df = genes_df[genes_df[args.karen_flag_col] == args.karen_flag_value].copy()
-        genes = [str(x).strip() for x in genes_df[args.gene_col].dropna().tolist() if str(x).strip()]
+        if args.filter_column in genes_df.columns:
+            genes_df = genes_df[genes_df[args.filter_column] == args.filter_value].copy()
+        genes = [str(x).strip() for x in genes_df[args.gene_column].dropna().tolist() if str(x).strip()]
 
     if args.limit_genes and args.limit_genes > 0:
         genes = genes[:args.limit_genes]
 
-    print(f"Genes to process: {len(genes)}")
+    logger.info(f"Genes to process: {len(genes)}")
 
     all_rows = []
 
@@ -539,7 +519,7 @@ def main():
         rows, msg = run_2hop_for_gene_network(
             G=G,
             gene=g,
-            de_dir=args.de_dir,
+            deg_dir=args.deg_dir,
             p_threshold=args.p_threshold,
             prefer_fdr=args.prefer_fdr,
             allowed_intermediates=allowed_intermediates,
@@ -547,39 +527,39 @@ def main():
         )
         return g, rows, msg
 
-    print("Running 2-hop extraction (parallel over genes)...")
+    logger.info("Running 2-hop extraction (parallel over genes)...")
     with ThreadPoolExecutor(max_workers=args.path_workers) as ex:
         futs = [ex.submit(gene_job, g) for g in genes]
         for fut in as_completed(futs):
             g, rows, msg = fut.result()
-            print(msg)
+            logger.info(msg)
             all_rows.extend(rows)
 
     df = pd.DataFrame(all_rows)
     if df.empty:
-        print("No rows produced. Exiting.")
+        logger.info("No rows produced. Exiting.")
         return
 
-    print(f"Extraction complete: rows={len(df):,}")
+    logger.info(f"Extraction complete: rows={len(df):,}")
 
-    print("Enriching evidence + PMIDs (db.indra.bio by stmt_hash; cached)...")
+    logger.info("Enriching evidence + PMIDs (db.indra.bio by stmt_hash; cached)...")
     df = enrich_evidence_and_pmids(df, max_workers=args.evidence_workers)
 
-    print("Annotating MeSH terms (get_mesh_ids_for_pmids; filtered to reference list)...")
+    logger.info("Annotating MeSH terms (get_mesh_ids_for_pmids; filtered to reference list)...")
     df = annotate_mesh(df, mesh_reference_csv=args.mesh_reference, mesh_batch_size=args.mesh_batch_size)
 
     df_self = df[df["source"] == df["target"]].copy()
     df_main = df[df["source"] != df["target"]].copy()
 
-    os.makedirs(os.path.dirname(args.out_csv_main) or ".", exist_ok=True)
-    os.makedirs(os.path.dirname(args.out_csv_self) or ".", exist_ok=True)
+    os.makedirs(os.path.dirname(args.output_main) or ".", exist_ok=True)
+    os.makedirs(os.path.dirname(args.output_self_targets) or ".", exist_ok=True)
 
-    df_main.to_csv(args.out_csv_main, index=False)
-    df_self.to_csv(args.out_csv_self, index=False)
+    df_main.to_csv(args.output_main, index=False)
+    df_self.to_csv(args.output_self_targets, index=False)
 
-    print("\nDONE.")
-    print(f"- non-self rows: {len(df_main):,} -> {args.out_csv_main}")
-    print(f"- self rows:     {len(df_self):,} -> {args.out_csv_self}")
+    logger.info("DONE.")
+    logger.info(f"- non-self rows: {len(df_main):,} -> {args.output_main}")
+    logger.info(f"- self rows:     {len(df_self):,} -> {args.output_self_targets}")
 
 
 if __name__ == "__main__":

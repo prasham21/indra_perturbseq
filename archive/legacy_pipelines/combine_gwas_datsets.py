@@ -1,8 +1,15 @@
+"""Legacy script: combine GWAS datasets with quality-based deduplication."""
+from __future__ import annotations
+
 import argparse
 import re
 import pandas as pd
 
-# GWAS genes list
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 GWAS_GENES = {
     "ARHGEF26", "BCAR1", "BMP1", "CALCRL", "CCM2", "CDKN1A", "CDKN2B", "CFDP1", "COL4A1", "COL4A2", "EDN1", "EXOC3L2",
     "FBN2", "FGD6", "FLT1", "FURIN", "GDPD5", "GGT5", "GOSR2", "IBTK", "JCAD", "LAMB2", "LOX", "MORF4L1", "N4BP2L2",
@@ -10,7 +17,6 @@ GWAS_GENES = {
     "SMAD3", "SPRY4", "SVIL", "SWAP70", "TFPI", "TLNRD1", "TSPAN14", "ZEB2",
 }
 
-# Canonical columns we care about for scoring/dedup
 CANON_COLS = [
     "source", "intermediate", "target",
     "logfoldchange",
@@ -38,7 +44,6 @@ def is_nonempty(x) -> bool:
 
 
 def looks_like_structured_evidence(text: str) -> bool:
-    # Your formatted evidence tends to contain "1) ..."
     if not is_nonempty(text):
         return False
     return bool(re.search(r"(^|\n)\s*1\)\s+", str(text)))
@@ -74,19 +79,19 @@ def safe_float(x, default=0.0) -> float:
 
 
 def print_file_stats(df: pd.DataFrame, title: str):
-    print(f"\n### {title}")
-    print(f"- rows: {len(df):,}")
-    print(f"- cols: {len(df.columns):,}")
-    print(f"- columns: {df.columns.tolist()}")
+    logger.info("\n### %s", title)
+    logger.info("- rows: %d", len(df))
+    logger.info("- cols: %d", len(df.columns))
+    logger.info("- columns: %s", df.columns.tolist())
     key = ["evidence_text_hop1", "pmids_hop1", "hop1_indra_url", "evidence_text_hop2", "pmids_hop2", "hop2_indra_url"]
     present = [c for c in key if c in df.columns]
     if present:
         for c in present:
             nn = df[c].apply(is_nonempty).sum()
-            print(f"  - {c}: non-empty {nn:,}/{len(df):,} ({nn/len(df)*100:.1f}%)")
+            logger.info("  - %s: non-empty %d/%d (%.1f%%)", c, nn, len(df), nn/len(df)*100)
     if "GWAS_genes_in_path" in df.columns:
         nn = df["GWAS_genes_in_path"].apply(is_nonempty).sum()
-        print(f"  - GWAS_genes_in_path non-empty: {nn:,}/{len(df):,} ({nn/len(df)*100:.1f}%)")
+        logger.info("  - GWAS_genes_in_path non-empty: %d/%d (%.1f%%)", nn, len(df), nn/len(df)*100)
 
 
 def report_column_mismatches(df1: pd.DataFrame, df2: pd.DataFrame, name1: str, name2: str):
@@ -94,23 +99,20 @@ def report_column_mismatches(df1: pd.DataFrame, df2: pd.DataFrame, name1: str, n
     s2 = set(df2.columns)
     only1 = sorted(s1 - s2)
     only2 = sorted(s2 - s1)
-    print(f"\n### Column comparison")
-    print(f"- {name1} only: {only1 if only1 else 'None'}")
-    print(f"- {name2} only: {only2 if only2 else 'None'}")
+    logger.info("\n### Column comparison")
+    logger.info("- %s only: %s", name1, only1 if only1 else 'None')
+    logger.info("- %s only: %s", name2, only2 if only2 else 'None')
 
 
 def ensure_schema(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # Add missing canonical columns
     for c in CANON_COLS:
         if c not in df.columns:
             df[c] = ""
 
-    # Ensure numeric column
     df["logfoldchange"] = pd.to_numeric(df["logfoldchange"], errors="coerce")
 
-    # If GWAS_genes_in_path missing/empty, recompute from source/intermediate/target
     def compute_gwas_in_path(row):
         hits = []
         for col in ["source", "intermediate", "target"]:
@@ -127,11 +129,9 @@ def ensure_schema(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def row_quality_score(row: pd.Series) -> float:
-    # Primary: has both working URLs
     url1 = is_valid_indra_url(row.get("hop1_indra_url", ""))
     url2 = is_valid_indra_url(row.get("hop2_indra_url", ""))
 
-    # Evidence (prefer structured, penalize placeholders)
     ev1 = row.get("evidence_text_hop1", "")
     ev2 = row.get("evidence_text_hop2", "")
     ev1_struct = looks_like_structured_evidence(ev1)
@@ -139,11 +139,9 @@ def row_quality_score(row: pd.Series) -> float:
     ev1_bad = is_placeholder_evidence(ev1)
     ev2_bad = is_placeholder_evidence(ev2)
 
-    # PMIDs present
     pm1 = is_nonempty(row.get("pmids_hop1", ""))
     pm2 = is_nonempty(row.get("pmids_hop2", ""))
 
-    # Overall completeness across important fields
     important = [
         "source", "intermediate", "target",
         "stmt_type_1", "stmt_type_2",
@@ -176,7 +174,6 @@ def dedupe_by_source_target(df: pd.DataFrame) -> pd.DataFrame:
     df["_score"] = df.apply(row_quality_score, axis=1)
     df["_abs_lfc"] = df["logfoldchange"].apply(lambda x: abs(safe_float(x, default=0.0)))
 
-    # sort best-first, then abs_lfc
     df = df.sort_values(by=["_score", "_abs_lfc"], ascending=[False, False], kind="mergesort")
     before = len(df)
     out = df.drop_duplicates(subset=["source", "target"], keep="first").copy()
@@ -184,14 +181,13 @@ def dedupe_by_source_target(df: pd.DataFrame) -> pd.DataFrame:
 
     out.drop(columns=["_score", "_abs_lfc"], inplace=True, errors="ignore")
 
-    print(f"\n### De-dup (source,target)")
-    print(f"- before: {before:,}")
-    print(f"- after:  {after:,}")
-    print(f"- reduced: {before-after:,} ({(before-after)/before*100:.1f}%)")
+    logger.info("\n### De-dup (source,target)")
+    logger.info("- before: %d", before)
+    logger.info("- after:  %d", after)
+    logger.info("- reduced: %d (%.1f%%)", before-after, (before-after)/before*100)
 
-    # quick quality stats
     hop2_ok = out["hop2_indra_url"].apply(is_valid_indra_url).sum()
-    print(f"- kept rows with valid hop2 url: {hop2_ok:,}/{after:,} ({hop2_ok/after*100:.1f}%)")
+    logger.info("- kept rows with valid hop2 url: %d/%d (%.1f%%)", hop2_ok, after, hop2_ok/after*100)
     return out
 
 
@@ -223,17 +219,17 @@ def main():
     # Dedupe by (source,target) with quality scoring
     combined_unique = dedupe_by_source_target(combined)
     combined_unique.to_csv(args.out_combined, index=False)
-    print(f"\nSaved combined deduped -> {args.out_combined}")
+    logger.info("\nSaved combined deduped -> %s", args.out_combined)
 
     # Split 1: GWAS genes are sources
     gwas_sources = combined_unique[combined_unique["source"].astype(str).isin(GWAS_GENES)].copy()
     gwas_sources.to_csv(args.out_gwas_sources, index=False)
-    print(f"Saved GWAS-as-source -> {args.out_gwas_sources} (rows={len(gwas_sources):,})")
+    logger.info("Saved GWAS-as-source -> %s (rows=%d)", args.out_gwas_sources, len(gwas_sources))
 
     # Split 2: GWAS genes are targets
     gwas_targets = combined_unique[combined_unique["target"].astype(str).isin(GWAS_GENES)].copy()
     gwas_targets.to_csv(args.out_gwas_targets, index=False)
-    print(f"Saved GWAS-as-target -> {args.out_gwas_targets} (rows={len(gwas_targets):,})")
+    logger.info("Saved GWAS-as-target -> %s (rows=%d)", args.out_gwas_targets, len(gwas_targets))
 
 
 if __name__ == "__main__":

@@ -1,27 +1,27 @@
-#!/usr/bin/env python3
-import pandas as pd
-import matplotlib.pyplot as plt
+"""Overlaid TPR/FPR plots across 1-hop, <=2-hop, and 3-hop with separate FPR panels."""
+from __future__ import annotations
 
-# =========================
-# EDIT THESE PATHS
-# =========================
-ONEHOP_CSV = "/Users/prashammarfatia/Downloads/tpr_fpr_1hop_with_outliers.csv"
-LE2HOP_CSV = "/Users/prashammarfatia/Downloads/tpr_fpr_le2hop_with_outliers.csv"
-OUT_PREFIX = "/Users/prashammarfatia/Downloads/outliers_overlay"
+import argparse
+
+import logging
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+logger = logging.getLogger(__name__)
+
+LE2HOP_CSV = "tpr_fpr_le2hop_with_outliers.csv"
 TITLE_SUFFIX = "(with outliers)"
 
-# =========================
-# 3-hop values (from your chat table; labeled as "3-hop")
-# =========================
 HOP3 = pd.DataFrame([
-    {"threshold": 0.5,    "TPR_overall": 0.6500, "FPR_overall": 0.1900},
-    {"threshold": 0.2,    "TPR_overall": 0.7000, "FPR_overall": 0.2050},
-    {"threshold": 0.1,    "TPR_overall": 0.7400, "FPR_overall": 0.2120},
-    {"threshold": 0.05,   "TPR_overall": 0.8000, "FPR_overall": 0.2180},
-    {"threshold": 0.02,   "TPR_overall": 0.8300, "FPR_overall": 0.2230},
-    {"threshold": 0.01,   "TPR_overall": 0.8600, "FPR_overall": 0.2260},
-    {"threshold": 0.005,  "TPR_overall": 0.8800, "FPR_overall": 0.2280},
-    {"threshold": 0.001,  "TPR_overall": 0.9200, "FPR_overall": 0.2310},
+    {"threshold": 0.5, "TPR_overall": 0.6500, "FPR_overall": 0.1900},
+    {"threshold": 0.2, "TPR_overall": 0.7000, "FPR_overall": 0.2050},
+    {"threshold": 0.1, "TPR_overall": 0.7400, "FPR_overall": 0.2120},
+    {"threshold": 0.05, "TPR_overall": 0.8000, "FPR_overall": 0.2180},
+    {"threshold": 0.02, "TPR_overall": 0.8300, "FPR_overall": 0.2230},
+    {"threshold": 0.01, "TPR_overall": 0.8600, "FPR_overall": 0.2260},
+    {"threshold": 0.005, "TPR_overall": 0.8800, "FPR_overall": 0.2280},
+    {"threshold": 0.001, "TPR_overall": 0.9200, "FPR_overall": 0.2310},
     {"threshold": 0.0005, "TPR_overall": 0.9300, "FPR_overall": 0.2320},
     {"threshold": 0.0001, "TPR_overall": 0.9500, "FPR_overall": 0.2330},
 ]).sort_values("threshold")
@@ -65,7 +65,7 @@ def _plot_overlay(dfs, metric_col, ylabel, title, out_png):
     plt.legend(frameon=False)
     plt.tight_layout()
     plt.savefig(out_png, dpi=300)
-    print(f"Wrote: {out_png}")
+    logger.info("Wrote: %s", out_png)
 
 
 def _plot_single(df, metric_col, ylabel, title, out_png, style, color):
@@ -86,34 +86,37 @@ def _plot_single(df, metric_col, ylabel, title, out_png, style, color):
     plt.grid(True, linestyle="--", alpha=0.35)
     plt.tight_layout()
     plt.savefig(out_png, dpi=300)
-    print(f"Wrote: {out_png}")
+    logger.info("Wrote: %s", out_png)
 
 
 def main():
-    one = _load_stats_csv(ONEHOP_CSV)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--onehop-csv", default="tpr_fpr_1hop_with_outliers.csv", help="Path for args.onehop_csv.")
+    ap.add_argument("--out-prefix", default="outliers_overlay", help="Path for args.out_prefix.")
+    args = ap.parse_args()
+
+    one = _load_stats_csv(args.onehop_csv)
     le2 = _load_stats_csv(LE2HOP_CSV)
 
-    # --- TPR: keep overlaid (manager only asked to split FPR) ---
     dfs_tpr = [
-        ("1-hop", one, "-", "#1f77b4"),                 # blue
-        ("≤2-hop (1+2 combined)", le2, "-", "#ff7f0e"), # orange
-        ("3-hop", HOP3, "--", "#2ca02c"),               # green dashed
+        ("1-hop", one, "-", "#1f77b4"),
+        ("<=2-hop (1+2 combined)", le2, "-", "#ff7f0e"),
+        ("3-hop", HOP3, "--", "#2ca02c"),
     ]
     _plot_overlay(
         dfs=dfs_tpr,
         metric_col="TPR_overall",
         ylabel="TPR (TP / total positives)",
         title=f"TPR vs p-value threshold {TITLE_SUFFIX}",
-        out_png=f"{OUT_PREFIX}__TPR.png",
+        out_png=f"{args.out_prefix}__TPR.png",
     )
 
-    # --- FPR: separate plots per hop (to avoid squished overlay) ---
     _plot_single(
         df=one,
         metric_col="FPR_overall",
         ylabel="FPR (FP / total negatives)",
-        title=f"FPR vs p-value threshold {TITLE_SUFFIX} — 1-hop",
-        out_png=f"{OUT_PREFIX}__FPR__1hop.png",
+        title=f"FPR vs p-value threshold {TITLE_SUFFIX} -- 1-hop",
+        out_png=f"{args.out_prefix}__FPR__1hop.png",
         style="-",
         color="#1f77b4",
     )
@@ -122,8 +125,8 @@ def main():
         df=le2,
         metric_col="FPR_overall",
         ylabel="FPR (FP / total negatives)",
-        title=f"FPR vs p-value threshold {TITLE_SUFFIX} — ≤2-hop (1+2 combined)",
-        out_png=f"{OUT_PREFIX}__FPR__le2hop.png",
+        title=f"FPR vs p-value threshold {TITLE_SUFFIX} -- <=2-hop (1+2 combined)",
+        out_png=f"{args.out_prefix}__FPR__le2hop.png",
         style="-",
         color="#ff7f0e",
     )
@@ -132,8 +135,8 @@ def main():
         df=HOP3,
         metric_col="FPR_overall",
         ylabel="FPR (FP / total negatives)",
-        title=f"FPR vs p-value threshold {TITLE_SUFFIX} — 3-hop",
-        out_png=f"{OUT_PREFIX}__FPR__3hop.png",
+        title=f"FPR vs p-value threshold {TITLE_SUFFIX} -- 3-hop",
+        out_png=f"{args.out_prefix}__FPR__3hop.png",
         style="--",
         color="#2ca02c",
     )

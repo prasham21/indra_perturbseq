@@ -1,6 +1,12 @@
+"""Superseded legacy script for 1-hop enrichment (MeSH, directionality, GWAS, stmt hashes).
+
+Refactored into src/indra_perturbseq/pipelines/.
+"""
+from __future__ import annotations
+
 import argparse
-import re
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
@@ -8,7 +14,8 @@ from indra.databases import hgnc_client
 from indra_cogex.client.neo4j_client import Neo4jClient
 from indra_cogex.client import get_mesh_ids_for_pmids
 
-# Silence noisy logs
+logger = logging.getLogger(__name__)
+
 logging.getLogger("indra_cogex").setLevel(logging.ERROR)
 logging.getLogger("indra_cogex.client.queries").setLevel(logging.ERROR)
 
@@ -72,8 +79,13 @@ def build_mesh_id_to_name_map(client: Neo4jClient) -> dict[str, str]:
     return mapping
 
 
-def annotate_mesh_terms(df: pd.DataFrame, pmids_col: str, client: Neo4jClient, mesh_batch_size: int, valid_mesh_ids: set[str]) -> pd.Series:
-    # collect all unique pmids
+def annotate_mesh_terms(
+    df: pd.DataFrame,
+    pmids_col: str,
+    client: Neo4jClient,
+    mesh_batch_size: int,
+    valid_mesh_ids: set[str],
+) -> pd.Series:
     all_pmids = set()
     for v in df[pmids_col].tolist():
         all_pmids.update(parse_pmids_cell(v))
@@ -91,7 +103,6 @@ def annotate_mesh_terms(df: pd.DataFrame, pmids_col: str, client: Neo4jClient, m
         mesh_ids = set()
         for pmid in pmids:
             mesh_ids.update(pmid_to_mesh.get(pmid, []) or [])
-        # normalize + filter to reference list (D only)
         kept = []
         for mid in sorted(mesh_ids):
             mid_u = str(mid).upper().strip()
@@ -134,11 +145,7 @@ def safe_float(x, default=None):
 
 
 def choose_stmt_hash(rows, target_belief=None, target_evcnt=None):
-    """
-    rows: list[dict] with keys stmt_hash, belief, evidence_count
-    preference: evidence_count match (if provided) then closest belief (if provided),
-                else max evidence_count then max belief.
-    """
+    """Pick best stmt_hash from candidate rows by evidence_count then belief match."""
     if not rows:
         return None
 
@@ -160,7 +167,7 @@ def choose_stmt_hash(rows, target_belief=None, target_evcnt=None):
 
 
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(description="1-hop enrichment pipeline")
     ap.add_argument("--input-csv", required=True)
     ap.add_argument("--mesh-reference", required=True)
     ap.add_argument("--out-csv", required=True)
@@ -170,12 +177,10 @@ def main():
 
     df = pd.read_csv(args.input_csv, low_memory=False)
 
-    # --- validate columns ---
     for c in ["source", "target"]:
         if c not in df.columns:
             raise ValueError(f"Missing required column: {c}")
 
-    # stmt_type naming varies in 1-hop files
     if "stmt_type" in df.columns:
         stmt_col = "stmt_type"
     elif "stmt_type_1" in df.columns:
@@ -183,7 +188,6 @@ def main():
     else:
         raise ValueError("Missing stmt type column (expected stmt_type or stmt_type_1).")
 
-    # pmids column naming varies
     if "pmids" in df.columns:
         pmids_col = "pmids"
     elif "pmids_hop1" in df.columns:
@@ -194,22 +198,23 @@ def main():
     if "logfoldchange" not in df.columns:
         raise ValueError("Missing logfoldchange column (needed for directionality).")
 
-    # --- 1) MeSH annotate + reference filter ---
     client = Neo4jClient()
     valid_mesh_ids = load_valid_mesh_ids(args.mesh_reference)
-    annotated = annotate_mesh_terms(df, pmids_col=pmids_col, client=client, mesh_batch_size=args.mesh_batch_size, valid_mesh_ids=valid_mesh_ids)
+    annotated = annotate_mesh_terms(
+        df, pmids_col=pmids_col, client=client,
+        mesh_batch_size=args.mesh_batch_size, valid_mesh_ids=valid_mesh_ids,
+    )
 
-    # insert after pmids col
     out_mesh_col = "Annotated MeSH terms"
     if out_mesh_col in df.columns:
         df.drop(columns=[out_mesh_col], inplace=True)
     insert_at = df.columns.get_loc(pmids_col) + 1
     df.insert(insert_at, out_mesh_col, annotated)
 
-    # --- 2) directionality ---
-    df["directionality"] = df.apply(lambda r: compute_directionality(r.get(stmt_col, ""), r.get("logfoldchange")), axis=1)
+    df["directionality"] = df.apply(
+        lambda r: compute_directionality(r.get(stmt_col, ""), r.get("logfoldchange")), axis=1,
+    )
 
-    # --- 3) GWAS_genes_in_path (1-hop: only source/target) ---
     def gwas_in_path_row(r):
         hits = []
         s = str(r.get("source", "")).strip()
@@ -222,13 +227,11 @@ def main():
 
     df["GWAS_genes_in_path"] = df.apply(gwas_in_path_row, axis=1)
 
-    # --- 4) stmt_hash + indra_url ---
     if "stmt_hash" not in df.columns:
         df["stmt_hash"] = ""
     if "indra_url" not in df.columns:
         df["indra_url"] = ""
 
-    # Optional belief/evidence_count columns (if present, used to pick best stmt_hash)
     belief_col = "belief" if "belief" in df.columns else ("belief_1" if "belief_1" in df.columns else None)
     evcnt_col = "evidence_count" if "evidence_count" in df.columns else ("evidence_1" if "evidence_1" in df.columns else None)
 
@@ -241,7 +244,6 @@ def main():
         if not is_nonempty(symbol):
             return None
         hid = hgnc_client.get_current_hgnc_id(str(symbol).strip())
-        # handle ambiguous mappings (list)
         if isinstance(hid, (list, tuple, set)):
             hid = next(iter(hid), None)
         return hid
@@ -290,7 +292,10 @@ def main():
         h = int(h)
         return i, str(h), INDRA_URL_FMT.format(h=h)
 
-    pending = [i for i in df.index if (not is_nonempty(df.at[i, "stmt_hash"]) or not is_nonempty(df.at[i, "indra_url"]))]
+    pending = [
+        i for i in df.index
+        if (not is_nonempty(df.at[i, "stmt_hash"]) or not is_nonempty(df.at[i, "indra_url"]))
+    ]
 
     if pending:
         with ThreadPoolExecutor(max_workers=args.hash_workers) as ex:
@@ -301,19 +306,18 @@ def main():
                     df.at[i, "stmt_hash"] = h
                     df.at[i, "indra_url"] = url
 
-    # --- reorder: directionality BEFORE stmt_hash + indra_url ---
     cols = df.columns.tolist()
     for c in ["directionality", "stmt_hash", "indra_url"]:
         if c in cols:
             cols.remove(c)
 
-    # Keep existing order, append these 3 at the end in required order
     cols.extend(["directionality", "stmt_hash", "indra_url"])
     df = df[cols]
 
     df.to_csv(args.out_csv, index=False)
-    print(f"Saved -> {args.out_csv} (rows={len(df):,})")
+    logger.info("Saved -> %s (rows=%d)", args.out_csv, len(df))
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()
