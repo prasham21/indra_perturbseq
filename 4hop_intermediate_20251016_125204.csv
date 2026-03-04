@@ -1,2 +1,0 @@
-source,intermediate_1,intermediate_2,intermediate_3,target,stmt_type_1,stmt_type_2,stmt_type_3,stmt_type_4,belief_1,belief_2,belief_3,belief_4,evidence_1,evidence_2,evidence_3,evidence_4,logfoldchange,pval
-RASIP1,CDC42,SLC33A1,uniprot.chain:PRO_0000032458,SERPINE1,Complex,Complex,Complex,IncreaseAmount,0.7758941660771121,0.8302066725941236,0.7292018436502476,0.8552021769358709,2,1,281,142,-0.43553644,3.51416255056377e-05

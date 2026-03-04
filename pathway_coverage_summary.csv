@@ -1,9 +1,0 @@
-Coverage_Type,Source_Target_Pairs,Percentage
-Individual_1hop,284,0.4951358136615642
-Individual_2hop,26592,46.36144914397294
-Individual_3hop,52846,92.13361693225008
-Exclusive_1hop_only,284,0.4951358136615642
-Exclusive_2hop_only,26328,45.90118204958332
-Exclusive_3hop_only,26565,46.31437637295582
-Total_Explained,53177,92.71069423620071
-Unexplained,4181,7.289305763799296
