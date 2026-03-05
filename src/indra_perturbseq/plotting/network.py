@@ -7,12 +7,16 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 from indra_perturbseq.pipelines.common import warn_deprecated_flags
 from indra_perturbseq.runtime import add_log_level_arg, configure_logging
+
+if TYPE_CHECKING:
+    import plotly.graph_objects as go
 
 logger = logging.getLogger(__name__)
 
