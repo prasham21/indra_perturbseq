@@ -1,4 +1,6 @@
-"""Boxplot visualizations for pathway p-value and LFC distributions."""
+"""Boxplot visualizations for pathway p-value and LFC distributions.
+This module provides plotting utilities and CLI entry points for analysis outputs.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,6 @@
-"""HGNC symbol normalization."""
+"""HGNC symbol normalization.
+This module provides shared utilities used across the INDRA Perturb-seq codebase.
+"""
 
 from __future__ import annotations
 

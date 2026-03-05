@@ -1,4 +1,6 @@
-"""DEG (differentially expressed gene) file helpers."""
+"""DEG (differentially expressed gene) file helpers.
+This module provides shared utilities used across the INDRA Perturb-seq codebase.
+"""
 
 from __future__ import annotations
 

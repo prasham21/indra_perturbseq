@@ -1,4 +1,6 @@
-"""Label-permuted network view for null-model evaluation."""
+"""Label-permuted network view for null-model evaluation.
+This module provides shared utilities used across the INDRA Perturb-seq codebase.
+"""
 
 from __future__ import annotations
 

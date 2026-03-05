@@ -1,4 +1,6 @@
-"""INDRA statement selection and iteration on graph edges."""
+"""INDRA statement selection and iteration on graph edges.
+This module provides shared utilities used across the INDRA Perturb-seq codebase.
+"""
 
 from __future__ import annotations
 

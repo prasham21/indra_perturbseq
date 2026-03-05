@@ -1,4 +1,6 @@
-"""Loading and filtering of gene lists (endothelial, filtered sources, etc.)."""
+"""Loading and filtering of gene lists (endothelial, filtered sources, etc.).
+This module provides shared utilities used across the INDRA Perturb-seq codebase.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,6 @@
-"""INDRA network-export graph loading and node helpers."""
+"""INDRA network-export graph loading and node helpers.
+This module provides shared utilities used across the INDRA Perturb-seq codebase.
+"""
 
 import logging
 import pickle

@@ -1,4 +1,6 @@
-"""ROC curve computation and plotting from threshold-based TPR/FPR."""
+"""ROC curve computation and plotting from threshold-based TPR/FPR.
+This module provides plotting utilities and CLI entry points for analysis outputs.
+"""
 
 from __future__ import annotations
 

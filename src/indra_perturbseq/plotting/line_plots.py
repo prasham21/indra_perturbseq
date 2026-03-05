@@ -1,4 +1,6 @@
-"""Overlaid TPR/FPR line plots across thresholds."""
+"""Overlaid TPR/FPR line plots across thresholds.
+This module provides plotting utilities and CLI entry points for analysis outputs.
+"""
 
 from __future__ import annotations
 
